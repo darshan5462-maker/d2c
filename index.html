@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRIP — Premium Clothing</title>
+<meta name="description" content="Premium D2C clothing brand. Shop the latest collections in streetwear, formal, and casual fashion.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0a0a0a;
+    --white: #f5f3ee;
+    --cream: #f0ece3;
+    --accent: #c8a96e;
+    --accent-dark: #a8873e;
+    --red: #c84b3c;
+    --green: #2d6a4f;
+    --gray-100: #f7f5f0;
+    --gray-200: #e8e4db;
+    --gray-300: #ccc8be;
+    --gray-500: #888278;
+    --gray-700: #3d3a34;
+    --border: 1px solid var(--gray-200);
+    --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--font-body); background: var(--white); color: var(--black); overflow-x: hidden; }
+
+  /* PAGE ROUTER */
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: block; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: var(--white); border-bottom: var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem; height: 64px;
+    transition: box-shadow var(--transition);
+  }
+  nav.scrolled { box-shadow: 0 2px 24px rgba(0,0,0,0.08); }
+  .nav-logo { font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.05em; cursor: pointer; color: var(--black); text-decoration: none; }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a { text-decoration: none; color: var(--gray-700); font-size: 0.875rem; font-weight: 400; letter-spacing: 0.05em; text-transform: uppercase; transition: color var(--transition); }
+  .nav-links a:hover { color: var(--black); }
+  .nav-actions { display: flex; align-items: center; gap: 1rem; }
+  .nav-icon { background: none; border: none; cursor: pointer; padding: 0.5rem; display: flex; align-items: center; gap: 0.25rem; font-family: var(--font-body); font-size: 0.875rem; color: var(--gray-700); transition: color var(--transition); }
+  .nav-icon:hover { color: var(--black); }
+  .cart-badge {
+    background: var(--black); color: var(--white); border-radius: 50%;
+    width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 500;
+  }
+  .hamburger { display: none; flex-direction: column; gap: 4px; background: none; border: none; cursor: pointer; padding: 0.5rem; }
+  .hamburger span { display: block; width: 22px; height: 1.5px; background: var(--black); transition: var(--transition); }
+
+  /* MOBILE NAV */
+  .mobile-nav {
+    position: fixed; top: 64px; left: 0; right: 0; bottom: 0; z-index: 999;
+    background: var(--white); padding: 2rem; display: none; flex-direction: column; gap: 2rem;
+  }
+  .mobile-nav.open { display: flex; }
+  .mobile-nav a { font-family: var(--font-display); font-size: 2.5rem; text-decoration: none; color: var(--black); letter-spacing: 0.05em; }
+
+  /* BUTTONS */
+  .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.875rem 2rem; border: none; cursor: pointer; font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; transition: all var(--transition); text-decoration: none; }
+  .btn-primary { background: var(--black); color: var(--white); }
+  .btn-primary:hover { background: var(--gray-700); }
+  .btn-outline { background: transparent; color: var(--black); border: 1.5px solid var(--black); }
+  .btn-outline:hover { background: var(--black); color: var(--white); }
+  .btn-accent { background: var(--accent); color: var(--black); }
+  .btn-accent:hover { background: var(--accent-dark); }
+  .btn-white { background: var(--white); color: var(--black); }
+  .btn-white:hover { background: var(--cream); }
+  .btn-lg { padding: 1.1rem 2.5rem; font-size: 1rem; }
+  .btn-sm { padding: 0.625rem 1.25rem; font-size: 0.8rem; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr;
+    padding-top: 64px;
+  }
+  .hero-text {
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 4rem 4rem 4rem 6rem;
+  }
+  .hero-tag { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 1.5rem; }
+  .hero-title { font-family: var(--font-display); font-size: clamp(5rem, 8vw, 9rem); line-height: 0.9; letter-spacing: 0.02em; margin-bottom: 2rem; }
+  .hero-title span { color: var(--accent); }
+  .hero-subtitle { font-size: 1.1rem; color: var(--gray-500); font-weight: 300; line-height: 1.7; max-width: 380px; margin-bottom: 3rem; }
+  .hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .hero-stats { display: flex; gap: 3rem; margin-top: 4rem; padding-top: 2rem; border-top: var(--border); }
+  .stat-num { font-family: var(--font-display); font-size: 2.5rem; color: var(--black); }
+  .stat-label { font-size: 0.75rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em; }
+  .hero-image {
+    background: var(--gray-100); position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hero-image-placeholder {
+    width: 100%; height: 100%; min-height: 600px;
+    background: linear-gradient(135deg, var(--gray-200) 0%, var(--cream) 50%, var(--gray-300) 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+  }
+  .hero-product-card {
+    position: absolute; bottom: 2rem; left: 2rem;
+    background: var(--white); padding: 1rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    border-left: 3px solid var(--accent);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  .hero-badge {
+    position: absolute; top: 2rem; right: 2rem;
+    background: var(--black); color: var(--white);
+    font-family: var(--font-mono); font-size: 0.7rem;
+    padding: 0.5rem 1rem; letter-spacing: 0.1em;
+  }
+
+  /* SECTIONS */
+  section { padding: 5rem 2rem; }
+  .section-inner { max-width: 1200px; margin: 0 auto; }
+  .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 3rem; }
+  .section-title { font-family: var(--font-display); font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: 0.02em; line-height: 1; }
+  .section-sub { font-size: 0.875rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+
+  /* CATEGORIES */
+  .categories-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+  .cat-card {
+    position: relative; overflow: hidden; cursor: pointer; aspect-ratio: 3/4;
+    background: var(--gray-200);
+    transition: transform var(--transition);
+  }
+  .cat-card:hover { transform: translateY(-4px); }
+  .cat-card:hover .cat-overlay { opacity: 1; }
+  .cat-bg { width: 100%; height: 100%; object-fit: cover; }
+  .cat-color-1 { background: linear-gradient(160deg, #2c2c2c 0%, #5a5a5a 100%); }
+  .cat-color-2 { background: linear-gradient(160deg, #8b6914 0%, #c8a96e 100%); }
+  .cat-color-3 { background: linear-gradient(160deg, #1a3a2a 0%, #2d6a4f 100%); }
+  .cat-color-4 { background: linear-gradient(160deg, #3c1515 0%, #c84b3c 100%); }
+  .cat-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem; opacity: 0.8; transition: opacity var(--transition); }
+  .cat-name { font-family: var(--font-display); font-size: 1.8rem; color: var(--white); letter-spacing: 0.05em; }
+  .cat-count { font-family: var(--font-mono); font-size: 0.7rem; color: rgba(255,255,255,0.7); margin-top: 0.25rem; }
+  .cat-arrow { color: var(--accent); font-size: 1.2rem; margin-top: 0.75rem; }
+
+  /* PRODUCT GRID */
+  .products-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+  .product-card {
+    cursor: pointer; transition: transform var(--transition);
+  }
+  .product-card:hover { transform: translateY(-4px); }
+  .product-card:hover .product-actions { opacity: 1; transform: translateY(0); }
+  .product-img {
+    aspect-ratio: 3/4; background: var(--gray-100); position: relative; overflow: hidden; margin-bottom: 1rem;
+  }
+  .product-img-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 4rem; color: var(--gray-300);
+  }
+  .product-badge {
+    position: absolute; top: 0.75rem; left: 0.75rem;
+    font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.25rem 0.625rem;
+  }
+  .badge-new { background: var(--black); color: var(--white); }
+  .badge-sale { background: var(--red); color: var(--white); }
+  .badge-bestseller { background: var(--accent); color: var(--black); }
+  .product-actions {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--black); padding: 0.875rem; text-align: center;
+    opacity: 0; transform: translateY(100%); transition: all var(--transition);
+  }
+  .product-actions button { background: none; border: none; color: var(--white); font-family: var(--font-body); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; width: 100%; }
+  .product-name { font-size: 0.9rem; font-weight: 400; color: var(--black); margin-bottom: 0.25rem; }
+  .product-category { font-family: var(--font-mono); font-size: 0.7rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+  .product-price { display: flex; gap: 0.75rem; align-items: center; }
+  .price-current { font-weight: 500; font-size: 0.95rem; }
+  .price-original { text-decoration: line-through; color: var(--gray-500); font-size: 0.85rem; }
+  .price-discount { color: var(--red); font-size: 0.8rem; font-weight: 500; }
+
+  /* BANNER */
+  .promo-banner {
+    background: var(--black); color: var(--white); padding: 5rem 2rem;
+    display: flex; align-items: center;
+  }
+  .promo-inner { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+  .promo-title { font-family: var(--font-display); font-size: clamp(3rem, 6vw, 6rem); letter-spacing: 0.02em; line-height: 0.9; }
+  .promo-title span { color: var(--accent); }
+  .promo-text { font-size: 1rem; color: rgba(255,255,255,0.6); line-height: 1.7; margin-bottom: 2rem; }
+  .promo-offer { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
+
+  /* MARQUEE */
+  .marquee-strip { background: var(--accent); padding: 0.875rem 0; overflow: hidden; }
+  .marquee-track { display: flex; gap: 3rem; animation: marquee 20s linear infinite; white-space: nowrap; }
+  .marquee-item { font-family: var(--font-display); font-size: 1.2rem; letter-spacing: 0.1em; color: var(--black); display: flex; align-items: center; gap: 1.5rem; }
+  .marquee-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--black); }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* TESTIMONIALS */
+  .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .testimonial-card {
+    background: var(--gray-100); padding: 2rem; border-left: 3px solid var(--accent);
+    transition: transform var(--transition);
+  }
+  .testimonial-card:hover { transform: translateY(-4px); }
+  .testimonial-stars { color: var(--accent); font-size: 0.875rem; margin-bottom: 1rem; letter-spacing: 0.1em; }
+  .testimonial-text { font-size: 0.95rem; line-height: 1.7; color: var(--gray-700); margin-bottom: 1.5rem; font-style: italic; }
+  .testimonial-author { font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; }
+  .testimonial-location { font-family: var(--font-mono); font-size: 0.7rem; color: var(--gray-500); }
+
+  /* NEWSLETTER */
+  .newsletter { background: var(--cream); text-align: center; }
+  .newsletter-inner { max-width: 600px; margin: 0 auto; }
+  .newsletter-title { font-family: var(--font-display); font-size: clamp(2.5rem, 5vw, 4rem); margin-bottom: 1rem; }
+  .newsletter-sub { color: var(--gray-500); margin-bottom: 2.5rem; }
+  .newsletter-form { display: flex; gap: 0; max-width: 480px; margin: 0 auto; }
+  .newsletter-input { flex: 1; padding: 1rem 1.5rem; border: 1.5px solid var(--black); background: var(--white); font-family: var(--font-body); font-size: 0.9rem; outline: none; }
+  .newsletter-input:focus { border-color: var(--accent); }
+
+  /* FOOTER */
+  footer { background: var(--black); color: var(--white); padding: 4rem 2rem 2rem; }
+  .footer-inner { max-width: 1200px; margin: 0 auto; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; margin-bottom: 3rem; }
+  .footer-logo { font-family: var(--font-display); font-size: 3rem; letter-spacing: 0.05em; margin-bottom: 1rem; }
+  .footer-tagline { color: rgba(255,255,255,0.5); font-size: 0.875rem; line-height: 1.7; max-width: 280px; }
+  .footer-heading { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 1.25rem; }
+  .footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.625rem; }
+  .footer-links a { color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; transition: color var(--transition); }
+  .footer-links a:hover { color: var(--white); }
+  .footer-bottom { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2rem; display: flex; justify-content: space-between; align-items: center; }
+  .footer-copy { font-size: 0.8rem; color: rgba(255,255,255,0.4); }
+  .footer-payment { display: flex; gap: 0.75rem; align-items: center; }
+  .payment-badge { background: rgba(255,255,255,0.1); padding: 0.25rem 0.625rem; font-family: var(--font-mono); font-size: 0.65rem; color: rgba(255,255,255,0.6); border-radius: 2px; letter-spacing: 0.05em; }
+
+  /* SHOP PAGE */
+  .shop-layout { display: grid; grid-template-columns: 260px 1fr; gap: 3rem; align-items: start; padding-top: 104px; max-width: 1200px; margin: 0 auto; padding-bottom: 4rem; padding-left: 2rem; padding-right: 2rem; }
+  .sidebar { position: sticky; top: 80px; }
+  .filter-group { border-bottom: var(--border); padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+  .filter-title { font-weight: 500; font-size: 0.875rem; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem; cursor: pointer; display: flex; justify-content: space-between; }
+  .filter-options { display: flex; flex-direction: column; gap: 0.625rem; }
+  .filter-option { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-size: 0.875rem; color: var(--gray-700); transition: color var(--transition); }
+  .filter-option:hover { color: var(--black); }
+  .filter-option input { accent-color: var(--black); width: 14px; height: 14px; }
+  .filter-color { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; transition: border-color var(--transition); }
+  .filter-color.active { border-color: var(--black); }
+  .size-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .size-btn { padding: 0.375rem 0.75rem; border: 1.5px solid var(--gray-300); background: none; cursor: pointer; font-family: var(--font-body); font-size: 0.8rem; transition: all var(--transition); }
+  .size-btn.active, .size-btn:hover { border-color: var(--black); background: var(--black); color: var(--white); }
+  .price-range { display: flex; gap: 1rem; }
+  .price-input { width: 100%; padding: 0.5rem 0.75rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.875rem; outline: none; background: var(--white); }
+  .price-input:focus { border-color: var(--black); }
+
+  .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+  .results-count { font-size: 0.875rem; color: var(--gray-500); }
+  .sort-select { padding: 0.5rem 1rem; border: 1.5px solid var(--gray-200); background: var(--white); font-family: var(--font-body); font-size: 0.875rem; outline: none; cursor: pointer; }
+
+  /* PRODUCT DETAIL */
+  .product-detail { max-width: 1200px; margin: 0 auto; padding: 104px 2rem 4rem; }
+  .product-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+  .product-gallery { display: flex; flex-direction: column; gap: 1rem; }
+  .gallery-main { aspect-ratio: 3/4; background: var(--gray-100); display: flex; align-items: center; justify-content: center; }
+  .gallery-thumbs { display: flex; gap: 0.75rem; }
+  .gallery-thumb { width: 80px; height: 100px; background: var(--gray-200); cursor: pointer; border: 2px solid transparent; transition: border-color var(--transition); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .gallery-thumb.active { border-color: var(--black); }
+  .gallery-thumb-img { font-family: var(--font-display); font-size: 1.5rem; color: var(--gray-400); }
+  .detail-brand { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+  .detail-name { font-family: var(--font-display); font-size: 2.5rem; letter-spacing: 0.02em; margin-bottom: 1rem; line-height: 1.1; }
+  .detail-price { font-size: 1.5rem; font-weight: 500; margin-bottom: 0.5rem; }
+  .detail-price-original { text-decoration: line-through; color: var(--gray-500); font-size: 1rem; margin-right: 0.75rem; }
+  .detail-price-savings { color: var(--red); font-size: 0.875rem; font-weight: 500; }
+  .detail-rating { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2rem; }
+  .rating-stars { color: var(--accent); font-size: 0.875rem; }
+  .rating-count { font-size: 0.8rem; color: var(--gray-500); }
+  .detail-section { margin-bottom: 2rem; }
+  .detail-label { font-size: 0.8rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.75rem; }
+  .sizes-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .size-option { width: 48px; height: 48px; border: 1.5px solid var(--gray-200); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; transition: all var(--transition); }
+  .size-option:hover, .size-option.selected { border-color: var(--black); background: var(--black); color: var(--white); }
+  .color-options { display: flex; gap: 0.75rem; }
+  .color-option { width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: all var(--transition); outline: 2px solid transparent; outline-offset: 2px; }
+  .color-option.selected { outline-color: var(--black); }
+  .qty-control { display: flex; align-items: center; border: 1.5px solid var(--gray-200); width: fit-content; }
+  .qty-btn { width: 44px; height: 44px; background: none; border: none; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background var(--transition); }
+  .qty-btn:hover { background: var(--gray-100); }
+  .qty-num { width: 48px; text-align: center; font-size: 0.95rem; font-weight: 500; border-left: 1.5px solid var(--gray-200); border-right: 1.5px solid var(--gray-200); height: 44px; display: flex; align-items: center; justify-content: center; }
+  .add-to-cart-row { display: flex; gap: 1rem; margin-top: 1.5rem; }
+  .wishlist-btn { width: 52px; height: 52px; border: 1.5px solid var(--gray-200); display: flex; align-items: center; justify-content: center; background: none; cursor: pointer; font-size: 1.2rem; transition: all var(--transition); flex-shrink: 0; }
+  .wishlist-btn:hover { border-color: var(--red); color: var(--red); }
+  .detail-features { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: var(--border); }
+  .feature-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; color: var(--gray-700); }
+  .feature-icon { color: var(--green); font-size: 0.875rem; }
+
+  /* CART */
+  .cart-page { max-width: 1100px; margin: 0 auto; padding: 104px 2rem 4rem; }
+  .cart-grid { display: grid; grid-template-columns: 1fr 360px; gap: 3rem; align-items: start; }
+  .cart-title { font-family: var(--font-display); font-size: 3rem; margin-bottom: 2rem; }
+  .cart-item { display: grid; grid-template-columns: 80px 1fr auto; gap: 1.25rem; padding: 1.5rem 0; border-bottom: var(--border); align-items: start; }
+  .cart-item-img { aspect-ratio: 3/4; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 1.5rem; color: var(--gray-300); }
+  .cart-item-name { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.25rem; }
+  .cart-item-meta { font-size: 0.8rem; color: var(--gray-500); font-family: var(--font-mono); margin-bottom: 0.75rem; }
+  .cart-item-qty { display: flex; align-items: center; border: 1px solid var(--gray-200); width: fit-content; }
+  .cart-qty-btn { width: 32px; height: 32px; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: background var(--transition); }
+  .cart-qty-btn:hover { background: var(--gray-100); }
+  .cart-qty-num { width: 40px; height: 32px; text-align: center; font-size: 0.875rem; font-weight: 500; border-left: 1px solid var(--gray-200); border-right: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: center; }
+  .cart-item-price { font-size: 0.95rem; font-weight: 500; text-align: right; }
+  .cart-remove { display: block; color: var(--gray-500); background: none; border: none; font-size: 0.75rem; text-decoration: underline; cursor: pointer; margin-top: 0.5rem; text-align: right; transition: color var(--transition); }
+  .cart-remove:hover { color: var(--red); }
+  .order-summary { background: var(--gray-100); padding: 2rem; position: sticky; top: 80px; }
+  .summary-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 1.5rem; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.875rem; }
+  .summary-total { border-top: var(--border); padding-top: 1rem; margin-top: 1rem; font-weight: 500; font-size: 1rem; }
+  .coupon-input { display: flex; gap: 0; margin-bottom: 1.5rem; }
+  .coupon-field { flex: 1; padding: 0.75rem 1rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.875rem; outline: none; }
+  .coupon-field:focus { border-color: var(--black); }
+  .guarantee-badges { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: var(--border); }
+  .guarantee-badge { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--gray-700); }
+
+  /* CHECKOUT */
+  .checkout-page { max-width: 1100px; margin: 0 auto; padding: 104px 2rem 4rem; }
+  .checkout-grid { display: grid; grid-template-columns: 1fr 380px; gap: 3rem; align-items: start; }
+  .checkout-title { font-family: var(--font-display); font-size: 3rem; margin-bottom: 2rem; }
+  .form-group { margin-bottom: 1.25rem; }
+  .form-label { display: block; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--gray-700); }
+  .form-input { width: 100%; padding: 0.875rem 1rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.9rem; outline: none; background: var(--white); transition: border-color var(--transition); }
+  .form-input:focus { border-color: var(--black); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-select { width: 100%; padding: 0.875rem 1rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.9rem; outline: none; background: var(--white); cursor: pointer; appearance: none; }
+  .checkout-section-title { font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 1.5rem; margin-top: 2.5rem; }
+  .payment-options { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
+  .payment-option { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; border: 1.5px solid var(--gray-200); cursor: pointer; transition: border-color var(--transition); }
+  .payment-option.selected { border-color: var(--black); }
+  .payment-option input { accent-color: var(--black); }
+  .payment-option-label { font-size: 0.875rem; font-weight: 500; }
+  .payment-option-sub { font-size: 0.75rem; color: var(--gray-500); }
+  .razorpay-badge { background: #528FF0; color: white; font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 2px; font-family: var(--font-mono); margin-left: auto; }
+
+  /* ORDER SUCCESS */
+  .success-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+  .success-inner { max-width: 600px; width: 100%; text-align: center; padding-top: 64px; }
+  .success-icon { width: 80px; height: 80px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 2rem; }
+  .success-title { font-family: var(--font-display); font-size: 3rem; margin-bottom: 1rem; }
+  .success-subtitle { color: var(--gray-500); margin-bottom: 2rem; line-height: 1.7; }
+  .order-details-box { background: var(--gray-100); padding: 2rem; text-align: left; margin-bottom: 2rem; }
+  .order-detail-row { display: flex; justify-content: space-between; font-size: 0.875rem; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-200); }
+  .order-detail-row:last-child { border-bottom: none; }
+
+  /* ABOUT / CONTACT / POLICY */
+  .content-page { max-width: 900px; margin: 0 auto; padding: 104px 2rem 4rem; }
+  .content-hero { text-align: center; padding: 4rem 0; }
+  .content-hero-title { font-family: var(--font-display); font-size: clamp(3rem, 6vw, 6rem); margin-bottom: 1.5rem; }
+  .content-hero-sub { color: var(--gray-500); max-width: 500px; margin: 0 auto; line-height: 1.7; }
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; margin: 4rem 0; align-items: center; }
+  .about-img { aspect-ratio: 4/5; background: var(--gray-100); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 5rem; color: var(--gray-300); }
+  .about-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin: 3rem 0; }
+  .value-card { padding: 2rem; background: var(--gray-100); border-top: 3px solid var(--accent); }
+  .value-num { font-family: var(--font-display); font-size: 3rem; color: var(--accent); margin-bottom: 0.5rem; }
+  .value-title { font-weight: 500; margin-bottom: 0.5rem; }
+  .value-text { font-size: 0.875rem; color: var(--gray-500); line-height: 1.6; }
+  .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin: 3rem 0; align-items: start; }
+  .contact-info-item { display: flex; gap: 1rem; margin-bottom: 2rem; }
+  .contact-icon { font-size: 1.25rem; color: var(--accent); width: 2rem; flex-shrink: 0; }
+  .contact-detail-title { font-weight: 500; margin-bottom: 0.25rem; }
+  .contact-detail-text { font-size: 0.875rem; color: var(--gray-500); line-height: 1.6; }
+  .policy-content { max-width: 720px; margin: 0 auto; }
+  .policy-section { margin-bottom: 2.5rem; }
+  .policy-heading { font-family: var(--font-display); font-size: 1.8rem; margin-bottom: 1rem; }
+  .policy-text { font-size: 0.9rem; line-height: 1.8; color: var(--gray-700); }
+  .policy-text + .policy-text { margin-top: 1rem; }
+  .policy-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .policy-list li { font-size: 0.9rem; color: var(--gray-700); padding-left: 1.25rem; position: relative; }
+  .policy-list li::before { content: '→'; position: absolute; left: 0; color: var(--accent); }
+
+  /* ADMIN PANEL */
+  .admin-layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  .admin-sidebar { background: var(--black); color: var(--white); padding: 0; position: fixed; left: 0; top: 0; bottom: 0; width: 240px; overflow-y: auto; z-index: 100; }
+  .admin-logo { padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .admin-logo-text { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.1em; }
+  .admin-logo-sub { font-family: var(--font-mono); font-size: 0.65rem; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; }
+  .admin-nav { padding: 1rem 0; }
+  .admin-nav-section { font-family: var(--font-mono); font-size: 0.65rem; color: rgba(255,255,255,0.3); letter-spacing: 0.15em; text-transform: uppercase; padding: 1rem 1.5rem 0.5rem; }
+  .admin-nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1.5rem; color: rgba(255,255,255,0.6); text-decoration: none; font-size: 0.875rem; transition: all var(--transition); cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: var(--font-body); }
+  .admin-nav-link:hover { background: rgba(255,255,255,0.05); color: var(--white); }
+  .admin-nav-link.active { background: var(--accent); color: var(--black); }
+  .admin-nav-link.active .admin-nav-icon { color: var(--black); }
+  .admin-nav-icon { font-size: 1rem; width: 20px; text-align: center; color: rgba(255,255,255,0.4); }
+  .admin-main { margin-left: 240px; min-height: 100vh; background: #f4f2ed; }
+  .admin-topbar { background: var(--white); border-bottom: var(--border); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
+  .admin-page-title { font-weight: 500; font-size: 1.1rem; }
+  .admin-user { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; }
+  .admin-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 0.8rem; color: var(--black); }
+  .admin-content { padding: 2rem; }
+  .admin-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 2rem; }
+  .admin-stat { background: var(--white); padding: 1.5rem; border-left: 4px solid transparent; }
+  .admin-stat.orders { border-left-color: var(--accent); }
+  .admin-stat.revenue { border-left-color: var(--green); }
+  .admin-stat.products { border-left-color: #528FF0; }
+  .admin-stat.customers { border-left-color: var(--red); }
+  .admin-stat-label { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--gray-500); text-transform: uppercase; margin-bottom: 0.5rem; }
+  .admin-stat-value { font-family: var(--font-display); font-size: 2.5rem; line-height: 1; margin-bottom: 0.25rem; }
+  .admin-stat-change { font-size: 0.75rem; color: var(--green); }
+  .admin-card { background: var(--white); padding: 1.5rem; margin-bottom: 1.25rem; }
+  .admin-card-title { font-weight: 500; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .admin-table th { text-align: left; padding: 0.625rem 1rem; font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gray-500); background: var(--gray-100); font-weight: 400; }
+  .admin-table td { padding: 0.875rem 1rem; border-bottom: var(--border); color: var(--gray-700); }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr:hover td { background: var(--gray-100); }
+  .status-pill { display: inline-block; padding: 0.2rem 0.75rem; border-radius: 2px; font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 500; }
+  .status-pending { background: #fff3cd; color: #856404; }
+  .status-paid { background: #d1ecf1; color: #0c5460; }
+  .status-shipped { background: #cce5ff; color: #004085; }
+  .status-delivered { background: #d4edda; color: #155724; }
+  .admin-form { max-width: 720px; }
+  .admin-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .admin-input { width: 100%; padding: 0.75rem 1rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.875rem; outline: none; background: var(--white); }
+  .admin-input:focus { border-color: var(--black); }
+  .admin-textarea { width: 100%; padding: 0.75rem 1rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.875rem; outline: none; background: var(--white); min-height: 120px; resize: vertical; }
+  .admin-textarea:focus { border-color: var(--black); }
+  .admin-select { width: 100%; padding: 0.75rem 1rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.875rem; outline: none; background: var(--white); cursor: pointer; }
+  .upload-zone { border: 2px dashed var(--gray-300); padding: 3rem; text-align: center; cursor: pointer; transition: all var(--transition); background: var(--gray-100); }
+  .upload-zone:hover { border-color: var(--black); background: var(--gray-200); }
+  .upload-icon { font-size: 2rem; margin-bottom: 1rem; color: var(--gray-500); }
+  .upload-text { font-size: 0.875rem; color: var(--gray-700); margin-bottom: 0.25rem; }
+  .upload-sub { font-size: 0.75rem; color: var(--gray-500); }
+  .admin-action-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+  .admin-search { flex: 1; max-width: 300px; padding: 0.625rem 1rem; border: 1.5px solid var(--gray-200); font-family: var(--font-body); font-size: 0.875rem; outline: none; background: var(--white); }
+  .admin-search:focus { border-color: var(--black); }
+
+  /* LOGIN */
+  .login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--black); }
+  .login-box { background: var(--white); padding: 3rem; width: 100%; max-width: 400px; }
+  .login-logo { font-family: var(--font-display); font-size: 3rem; text-align: center; margin-bottom: 0.5rem; }
+  .login-sub { text-align: center; font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 2.5rem; }
+
+  /* WHATSAPP */
+  .whatsapp-btn {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 900;
+    background: #25D366; color: white; border: none; border-radius: 50%;
+    width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; cursor: pointer; box-shadow: 0 4px 20px rgba(37,211,102,0.4);
+    transition: transform var(--transition); text-decoration: none;
+  }
+  .whatsapp-btn:hover { transform: scale(1.1); }
+  .whatsapp-tooltip {
+    position: fixed; bottom: 5.5rem; right: 2rem; z-index: 900;
+    background: var(--black); color: var(--white); padding: 0.5rem 1rem;
+    font-size: 0.75rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity var(--transition);
+  }
+  .whatsapp-btn:hover + .whatsapp-tooltip { opacity: 1; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--black); color: var(--white); padding: 1rem 1.5rem;
+    font-size: 0.875rem; z-index: 9999; transition: transform 0.3s ease;
+    display: flex; align-items: center; gap: 0.75rem; min-width: 300px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast-icon { color: var(--accent); font-size: 1rem; }
+
+  /* BREADCRUMB */
+  .breadcrumb { display: flex; gap: 0.5rem; font-size: 0.8rem; color: var(--gray-500); margin-bottom: 2rem; align-items: center; font-family: var(--font-mono); }
+  .breadcrumb span { cursor: pointer; transition: color var(--transition); }
+  .breadcrumb span:hover { color: var(--black); }
+  .breadcrumb-sep { color: var(--gray-300); }
+
+  /* CHART BARS (admin) */
+  .chart-bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 120px; }
+  .chart-bar { flex: 1; background: var(--gray-200); position: relative; min-height: 4px; cursor: pointer; transition: background var(--transition); }
+  .chart-bar:hover { background: var(--accent); }
+  .chart-bar-label { position: absolute; bottom: -1.5rem; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: var(--gray-500); font-family: var(--font-mono); white-space: nowrap; }
+
+  /* RESPONSIVE */
+  @media (max-width: 1024px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-text { padding: 3rem 2rem; }
+    .hero-image { min-height: 400px; }
+    .categories-grid, .products-grid { grid-template-columns: repeat(2, 1fr); }
+    .promo-inner { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .shop-layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; }
+    .product-detail-grid { grid-template-columns: 1fr; }
+    .cart-grid, .checkout-grid { grid-template-columns: 1fr; }
+    .about-grid, .contact-grid { grid-template-columns: 1fr; }
+    .about-values { grid-template-columns: 1fr; }
+    .admin-stats { grid-template-columns: repeat(2, 1fr); }
+    .admin-layout { grid-template-columns: 1fr; }
+    .admin-sidebar { display: none; }
+    .admin-main { margin-left: 0; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    nav { padding: 0 1rem; }
+    .nav-links { display: none; }
+    .hamburger { display: flex; }
+    .categories-grid, .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    .hero-title { font-size: 4rem; }
+    .hero-stats { gap: 1.5rem; }
+    .newsletter-form { flex-direction: column; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .form-row, .admin-form-row { grid-template-columns: 1fr; }
+    .admin-stats { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeInUp 0.6s ease both; }
+  .fade-in-2 { animation: fadeInUp 0.6s 0.15s ease both; }
+  .fade-in-3 { animation: fadeInUp 0.6s 0.3s ease both; }
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav id="navbar">
+  <a class="nav-logo" onclick="showPage('home')">DRIP</a>
+  <ul class="nav-links">
+    <li><a href="#" onclick="showPage('home')">Home</a></li>
+    <li><a href="#" onclick="showPage('shop')">Shop</a></li>
+    <li><a href="#" onclick="showPage('about')">About</a></li>
+    <li><a href="#" onclick="showPage('contact')">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="nav-icon" onclick="showPage('shop')">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <button class="nav-icon" onclick="showPage('cart')">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span class="cart-badge" id="cartCount">2</span>
+    </button>
+    <button class="btn btn-sm btn-primary" onclick="showPage('admin-login')">Admin</button>
+    <button class="hamburger" onclick="toggleMobileNav()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav" id="mobileNav">
+  <a onclick="showPage('home'); closeMobileNav()">Home</a>
+  <a onclick="showPage('shop'); closeMobileNav()">Shop</a>
+  <a onclick="showPage('about'); closeMobileNav()">About</a>
+  <a onclick="showPage('contact'); closeMobileNav()">Contact</a>
+  <a onclick="showPage('cart'); closeMobileNav()">Cart</a>
+</div>
+
+<!-- WHATSAPP BUTTON -->
+<a class="whatsapp-btn" href="https://wa.me/919876543210?text=Hi! I need help with my order" target="_blank" title="Chat on WhatsApp">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+</a>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <span id="toastMsg">Item added to cart!</span>
+</div>
+
+<!-- ========== HOME PAGE ========== -->
+<div class="page active" id="page-home">
+  <!-- HERO -->
+  <section style="padding:0">
+    <div class="hero">
+      <div class="hero-text">
+        <p class="hero-tag fade-in">— New Collection 2025</p>
+        <h1 class="hero-title fade-in-2">DRESS<br>YOUR<br><span>TRUTH</span></h1>
+        <p class="hero-subtitle fade-in-3">Premium quality clothing crafted for those who refuse to blend in. Every piece tells your story.</p>
+        <div class="hero-ctas fade-in-3">
+          <button class="btn btn-primary btn-lg" onclick="showPage('shop')">Shop Now →</button>
+          <button class="btn btn-outline btn-lg" onclick="showPage('about')">Our Story</button>
+        </div>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-num">12K+</div>
+            <div class="stat-label">Happy Customers</div>
+          </div>
+          <div>
+            <div class="stat-num">200+</div>
+            <div class="stat-label">Products</div>
+          </div>
+          <div>
+            <div class="stat-num">4.9★</div>
+            <div class="stat-label">Avg Rating</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="hero-image-placeholder">
+          <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#ccc8be" stroke-width="0.5"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>
+          <p style="color:#ccc8be; font-family: var(--font-mono); font-size:0.75rem; letter-spacing:0.1em">FEATURED LOOK</p>
+        </div>
+        <div class="hero-product-card">
+          <div>
+            <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.1em">Featured</div>
+            <div style="font-weight:500;font-size:0.9rem">Signature Tee</div>
+            <div style="color:var(--accent);font-weight:500">₹1,299</div>
+          </div>
+          <button class="btn btn-sm btn-primary" onclick="addToCart(); showPage('shop')">Add</button>
+        </div>
+        <div class="hero-badge">SS25 COLLECTION</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee-strip">
+    <div class="marquee-track">
+      <span class="marquee-item">FREE SHIPPING OVER ₹999<span class="marquee-dot"></span></span>
+      <span class="marquee-item">NEW ARRIVALS EVERY MONDAY<span class="marquee-dot"></span></span>
+      <span class="marquee-item">EASY 30-DAY RETURNS<span class="marquee-dot"></span></span>
+      <span class="marquee-item">COD AVAILABLE<span class="marquee-dot"></span></span>
+      <span class="marquee-item">FREE SHIPPING OVER ₹999<span class="marquee-dot"></span></span>
+      <span class="marquee-item">NEW ARRIVALS EVERY MONDAY<span class="marquee-dot"></span></span>
+      <span class="marquee-item">EASY 30-DAY RETURNS<span class="marquee-dot"></span></span>
+      <span class="marquee-item">COD AVAILABLE<span class="marquee-dot"></span></span>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <section style="background: var(--white)">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <p class="section-sub">Shop by</p>
+          <h2 class="section-title">CATEGORIES</h2>
+        </div>
+        <button class="btn btn-outline" onclick="showPage('shop')">View All →</button>
+      </div>
+      <div class="categories-grid">
+        <div class="cat-card" onclick="showPage('shop')">
+          <div class="cat-color-1" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>
+          </div>
+          <div class="cat-overlay">
+            <div class="cat-name">T-SHIRTS</div>
+            <div class="cat-count">48 PRODUCTS</div>
+            <div class="cat-arrow">→</div>
+          </div>
+        </div>
+        <div class="cat-card" onclick="showPage('shop')">
+          <div class="cat-color-2" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"><path d="M18 20V10M6 20V10M2 10l10-8 10 8M12 20v-6"/></svg>
+          </div>
+          <div class="cat-overlay">
+            <div class="cat-name">HOODIES</div>
+            <div class="cat-count">32 PRODUCTS</div>
+            <div class="cat-arrow">→</div>
+          </div>
+        </div>
+        <div class="cat-card" onclick="showPage('shop')">
+          <div class="cat-color-3" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"><path d="M6 2h12l-1 7H7L6 2z"/><path d="M7 9c0 5 1 10 5 13 4-3 5-8 5-13"/></svg>
+          </div>
+          <div class="cat-overlay">
+            <div class="cat-name">JOGGERS</div>
+            <div class="cat-count">26 PRODUCTS</div>
+            <div class="cat-arrow">→</div>
+          </div>
+        </div>
+        <div class="cat-card" onclick="showPage('shop')">
+          <div class="cat-color-4" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"><path d="M3 7l9-5 9 5v13l-9 5-9-5V7z"/></svg>
+          </div>
+          <div class="cat-overlay">
+            <div class="cat-name">JACKETS</div>
+            <div class="cat-count">19 PRODUCTS</div>
+            <div class="cat-arrow">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED PRODUCTS -->
+  <section style="background: var(--cream)">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <p class="section-sub">Hand-picked</p>
+          <h2 class="section-title">FEATURED</h2>
+        </div>
+        <button class="btn btn-outline" onclick="showPage('shop')">View All →</button>
+      </div>
+      <div class="products-grid" id="featuredProducts"></div>
+    </div>
+  </section>
+
+  <!-- PROMO BANNER -->
+  <div class="promo-banner">
+    <div class="promo-inner">
+      <div>
+        <p class="promo-offer">Limited Time Offer</p>
+        <h2 class="promo-title">FLAT<br><span>30% OFF</span><br>SITEWIDE</h2>
+      </div>
+      <div>
+        <p class="promo-text">Don't miss our biggest sale of the season. Use code DRIP30 at checkout for 30% off on all orders above ₹1,499. Free shipping included.</p>
+        <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--accent);letter-spacing:0.15em;margin-bottom:1rem">USE CODE: DRIP30</div>
+        <button class="btn btn-accent btn-lg" onclick="showPage('shop')">Shop the Sale →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BESTSELLERS -->
+  <section>
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <p class="section-sub">Top Sellers</p>
+          <h2 class="section-title">BESTSELLERS</h2>
+        </div>
+        <button class="btn btn-outline" onclick="showPage('shop')">View All →</button>
+      </div>
+      <div class="products-grid" id="bestsellers"></div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section style="background: var(--cream)">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <p class="section-sub">What they say</p>
+          <h2 class="section-title">REVIEWS</h2>
+        </div>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">"The quality is incredible. Wore the oversized tee for 6 months and it still looks brand new. Will definitely order more."</p>
+          <div class="testimonial-author">Priya S.</div>
+          <div class="testimonial-location">Mumbai, Maharashtra</div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">"Fast shipping, beautiful packaging, and the hoodie fits exactly as described. DRIP is my go-to brand now."</p>
+          <div class="testimonial-author">Arjun K.</div>
+          <div class="testimonial-location">Bangalore, Karnataka</div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">"The joggers are so comfortable, I wear them everywhere. Got compliments all day. Highly recommend!"</p>
+          <div class="testimonial-author">Kavya R.</div>
+          <div class="testimonial-location">Chennai, Tamil Nadu</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section class="newsletter">
+    <div class="newsletter-inner">
+      <h2 class="newsletter-title">STAY IN THE LOOP</h2>
+      <p class="newsletter-sub">Get first access to new drops, exclusive discounts, and style inspiration delivered to your inbox.</p>
+      <form class="newsletter-form" onsubmit="handleNewsletter(event)">
+        <input class="newsletter-input" type="email" placeholder="your@email.com" required>
+        <button type="submit" class="btn btn-primary" style="white-space:nowrap">Subscribe →</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">DRIP</div>
+          <p class="footer-tagline">Premium D2C clothing brand crafted for those who refuse to blend in. Quality you can feel, style you can own.</p>
+          <div style="display:flex;gap:1rem;margin-top:1.5rem">
+            <a href="#" style="color:rgba(255,255,255,0.5);font-size:1.2rem;transition:color 0.2s" onmouseover="this.style.color='#c8a96e'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">IG</a>
+            <a href="#" style="color:rgba(255,255,255,0.5);font-size:1.2rem;transition:color 0.2s" onmouseover="this.style.color='#c8a96e'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">FB</a>
+            <a href="#" style="color:rgba(255,255,255,0.5);font-size:1.2rem;transition:color 0.2s" onmouseover="this.style.color='#c8a96e'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">YT</a>
+          </div>
+        </div>
+        <div>
+          <p class="footer-heading">Shop</p>
+          <ul class="footer-links">
+            <li><a href="#" onclick="showPage('shop')">New Arrivals</a></li>
+            <li><a href="#" onclick="showPage('shop')">T-Shirts</a></li>
+            <li><a href="#" onclick="showPage('shop')">Hoodies</a></li>
+            <li><a href="#" onclick="showPage('shop')">Joggers</a></li>
+            <li><a href="#" onclick="showPage('shop')">Jackets</a></li>
+            <li><a href="#" onclick="showPage('shop')">Sale</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="footer-heading">Company</p>
+          <ul class="footer-links">
+            <li><a href="#" onclick="showPage('about')">About Us</a></li>
+            <li><a href="#" onclick="showPage('contact')">Contact</a></li>
+            <li><a href="#" onclick="showPage('careers')">Careers</a></li>
+            <li><a href="#" onclick="showPage('blog')">Blog</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="footer-heading">Support</p>
+          <ul class="footer-links">
+            <li><a href="#" onclick="showPage('privacy')">Privacy Policy</a></li>
+            <li><a href="#" onclick="showPage('terms')">Terms of Service</a></li>
+            <li><a href="#" onclick="showPage('privacy')">Shipping Policy</a></li>
+            <li><a href="#" onclick="showPage('privacy')">Return Policy</a></li>
+            <li><a href="#" onclick="showPage('contact')">FAQ</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">© 2025 DRIP. All rights reserved. Made with ♥ in India.</p>
+        <div class="footer-payment">
+          <span class="payment-badge">RAZORPAY</span>
+          <span class="payment-badge">UPI</span>
+          <span class="payment-badge">VISA</span>
+          <span class="payment-badge">MASTERCARD</span>
+          <span class="payment-badge">COD</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ========== SHOP PAGE ========== -->
+<div class="page" id="page-shop">
+  <div class="shop-layout">
+    <!-- SIDEBAR FILTERS -->
+    <aside class="sidebar">
+      <div style="padding: 1rem 0; border-bottom: var(--border); margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-weight:500;font-size:0.875rem;letter-spacing:0.1em;text-transform:uppercase">Filters</h3>
+        <button onclick="clearFilters()" style="background:none;border:none;font-size:0.75rem;color:var(--accent);cursor:pointer;font-family:var(--font-mono);letter-spacing:0.05em">Clear All</button>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Categories <span>−</span></div>
+        <div class="filter-options">
+          <label class="filter-option"><input type="checkbox"> T-Shirts (48)</label>
+          <label class="filter-option"><input type="checkbox"> Hoodies (32)</label>
+          <label class="filter-option"><input type="checkbox"> Joggers (26)</label>
+          <label class="filter-option"><input type="checkbox"> Jackets (19)</label>
+          <label class="filter-option"><input type="checkbox"> Oversized (15)</label>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Size <span>−</span></div>
+        <div class="size-grid">
+          <button class="size-btn" onclick="this.classList.toggle('active')">XS</button>
+          <button class="size-btn active" onclick="this.classList.toggle('active')">S</button>
+          <button class="size-btn" onclick="this.classList.toggle('active')">M</button>
+          <button class="size-btn active" onclick="this.classList.toggle('active')">L</button>
+          <button class="size-btn" onclick="this.classList.toggle('active')">XL</button>
+          <button class="size-btn" onclick="this.classList.toggle('active')">XXL</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Color <span>−</span></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem">
+          <div class="color-option selected" style="background:#0a0a0a" title="Black"></div>
+          <div class="color-option" style="background:#f5f3ee;border:1px solid var(--gray-300)" title="White"></div>
+          <div class="color-option" style="background:#c8a96e" title="Camel"></div>
+          <div class="color-option" style="background:#2d6a4f" title="Forest"></div>
+          <div class="color-option" style="background:#c84b3c" title="Red"></div>
+          <div class="color-option" style="background:#3d7ec8" title="Blue"></div>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Price Range <span>−</span></div>
+        <div class="price-range">
+          <input class="price-input" type="number" placeholder="₹ Min" value="0">
+          <input class="price-input" type="number" placeholder="₹ Max" value="5000">
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-title">Rating <span>−</span></div>
+        <div class="filter-options">
+          <label class="filter-option"><input type="checkbox"> 4★ & above</label>
+          <label class="filter-option"><input type="checkbox"> 3★ & above</label>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:1rem">Apply Filters</button>
+    </aside>
+
+    <!-- PRODUCT LISTING -->
+    <div>
+      <div class="shop-header">
+        <p class="results-count">Showing <strong>125</strong> products</p>
+        <select class="sort-select">
+          <option>Sort: Featured</option>
+          <option>Price: Low to High</option>
+          <option>Price: High to Low</option>
+          <option>Newest First</option>
+          <option>Best Rating</option>
+          <option>Most Popular</option>
+        </select>
+      </div>
+      <div class="products-grid" id="shopProducts"></div>
+      <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:3rem">
+        <button class="btn btn-primary btn-sm">1</button>
+        <button class="btn btn-outline btn-sm">2</button>
+        <button class="btn btn-outline btn-sm">3</button>
+        <button class="btn btn-outline btn-sm">→</button>
+      </div>
+    </div>
+  </div>
+  <!-- Footer for shop page -->
+  <footer style="background:var(--black);color:var(--white);padding:2rem;text-align:center">
+    <div style="font-family:var(--font-display);font-size:2rem;margin-bottom:0.5rem">DRIP</div>
+    <p style="font-size:0.8rem;color:rgba(255,255,255,0.4)">© 2025 DRIP. Premium Clothing Brand.</p>
+  </footer>
+</div>
+
+<!-- ========== PRODUCT DETAIL PAGE ========== -->
+<div class="page" id="page-product">
+  <div class="product-detail">
+    <div class="breadcrumb">
+      <span onclick="showPage('home')">Home</span>
+      <span class="breadcrumb-sep">/</span>
+      <span onclick="showPage('shop')">Shop</span>
+      <span class="breadcrumb-sep">/</span>
+      <span style="color:var(--black)" id="breadcrumbProduct">Oversized Tee</span>
+    </div>
+    <div class="product-detail-grid">
+      <div class="product-gallery">
+        <div class="gallery-main">
+          <div style="text-align:center;color:var(--gray-300)">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>
+            <p style="font-family:var(--font-mono);font-size:0.7rem;letter-spacing:0.1em;margin-top:1rem">PRODUCT IMAGE</p>
+          </div>
+        </div>
+        <div class="gallery-thumbs">
+          <div class="gallery-thumb active"><span class="gallery-thumb-img">①</span></div>
+          <div class="gallery-thumb" onclick="this.parentElement.querySelectorAll('.gallery-thumb').forEach(t=>t.classList.remove('active'));this.classList.add('active')"><span class="gallery-thumb-img">②</span></div>
+          <div class="gallery-thumb" onclick="this.parentElement.querySelectorAll('.gallery-thumb').forEach(t=>t.classList.remove('active'));this.classList.add('active')"><span class="gallery-thumb-img">③</span></div>
+          <div class="gallery-thumb" onclick="this.parentElement.querySelectorAll('.gallery-thumb').forEach(t=>t.classList.remove('active'));this.classList.add('active')"><span class="gallery-thumb-img">④</span></div>
+        </div>
+      </div>
+      <div>
+        <p class="detail-brand">DRIP Essentials</p>
+        <h1 class="detail-name" id="detailProductName">Signature Oversized Tee</h1>
+        <div>
+          <span class="detail-price-original">₹1,799</span>
+          <span class="detail-price">₹1,299</span>
+          <span class="detail-price-savings">Save ₹500 (28%)</span>
+        </div>
+        <div class="detail-rating">
+          <span class="rating-stars">★★★★★</span>
+          <span class="rating-count">4.8 (234 reviews)</span>
+        </div>
+        <p style="font-size:0.9rem;color:var(--gray-700);line-height:1.7;margin-bottom:2rem">The signature oversized tee crafted from 100% organic cotton. Drop-shoulder fit with a relaxed silhouette that works for every occasion. Preshrunk, colorfast, and built to last.</p>
+
+        <div class="detail-section">
+          <div class="detail-label">Select Size</div>
+          <div class="sizes-grid">
+            <div class="size-option" onclick="selectSize(this)">XS</div>
+            <div class="size-option" onclick="selectSize(this)">S</div>
+            <div class="size-option selected" onclick="selectSize(this)">M</div>
+            <div class="size-option" onclick="selectSize(this)">L</div>
+            <div class="size-option" onclick="selectSize(this)">XL</div>
+            <div class="size-option" onclick="selectSize(this)">XXL</div>
+          </div>
+          <a href="#" style="font-size:0.75rem;color:var(--accent);font-family:var(--font-mono);margin-top:0.5rem;display:inline-block">Size Guide →</a>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Color</div>
+          <div class="color-options">
+            <div class="color-option selected" style="background:#0a0a0a" onclick="selectColor(this)" title="Black"></div>
+            <div class="color-option" style="background:#f5f3ee;border:2px solid var(--gray-300)" onclick="selectColor(this)" title="White"></div>
+            <div class="color-option" style="background:#c8a96e" onclick="selectColor(this)" title="Camel"></div>
+            <div class="color-option" style="background:#2d6a4f" onclick="selectColor(this)" title="Forest"></div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Quantity</div>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <div class="qty-num" id="qtyNum">1</div>
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+
+        <div class="add-to-cart-row">
+          <button class="btn btn-primary btn-lg" style="flex:1" onclick="addToCart(); showToast('Added to cart! 🛍️')">Add to Cart</button>
+          <button class="wishlist-btn" title="Add to Wishlist">♡</button>
+        </div>
+        <button class="btn btn-accent btn-lg btn-full" style="margin-top:0.75rem" onclick="addToCart(); showPage('checkout')">Buy Now →</button>
+
+        <div class="detail-features">
+          <div class="feature-row"><span class="feature-icon">✓</span> Free Shipping on orders above ₹999</div>
+          <div class="feature-row"><span class="feature-icon">✓</span> Easy 30-day returns & exchanges</div>
+          <div class="feature-row"><span class="feature-icon">✓</span> 100% organic cotton, pre-washed</div>
+          <div class="feature-row"><span class="feature-icon">✓</span> Made in India with pride</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATED PRODUCTS -->
+    <div style="margin-top:5rem">
+      <h2 class="section-title" style="margin-bottom:2rem">YOU MAY ALSO LIKE</h2>
+      <div class="products-grid" id="relatedProducts"></div>
+    </div>
+  </div>
+  <footer style="background:var(--black);color:var(--white);padding:2rem;text-align:center">
+    <div style="font-family:var(--font-display);font-size:2rem;margin-bottom:0.5rem">DRIP</div>
+    <p style="font-size:0.8rem;color:rgba(255,255,255,0.4)">© 2025 DRIP. Premium Clothing Brand.</p>
+  </footer>
+</div>
+
+<!-- ========== CART PAGE ========== -->
+<div class="page" id="page-cart">
+  <div class="cart-page">
+    <h1 class="cart-title">YOUR CART</h1>
+    <div class="cart-grid">
+      <div>
+        <div id="cartItems"></div>
+        <button onclick="showPage('shop')" class="btn btn-outline" style="margin-top:1.5rem">← Continue Shopping</button>
+      </div>
+      <div class="order-summary">
+        <h3 class="summary-title">ORDER SUMMARY</h3>
+        <div class="coupon-input">
+          <input class="coupon-field" type="text" placeholder="Enter coupon code" id="couponInput">
+          <button class="btn btn-primary btn-sm" onclick="applyCoupon()">Apply</button>
+        </div>
+        <div class="summary-row"><span>Subtotal (2 items)</span><span>₹2,598</span></div>
+        <div class="summary-row"><span>Shipping</span><span style="color:var(--green)">FREE</span></div>
+        <div class="summary-row"><span>Discount</span><span style="color:var(--red)" id="cartDiscount">−₹0</span></div>
+        <div class="summary-row summary-total"><span>Total</span><span id="cartTotal">₹2,598</span></div>
+        <button class="btn btn-primary btn-full btn-lg" style="margin-top:1.5rem" onclick="showPage('checkout')">Proceed to Checkout →</button>
+        <div class="guarantee-badges">
+          <div class="guarantee-badge">🔒 Secure Checkout</div>
+          <div class="guarantee-badge">↩️ Easy Returns</div>
+          <div class="guarantee-badge">🚚 Free Shipping</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== CHECKOUT PAGE ========== -->
+<div class="page" id="page-checkout">
+  <div class="checkout-page">
+    <h1 class="checkout-title">CHECKOUT</h1>
+    <div class="checkout-grid">
+      <div>
+        <h2 class="checkout-section-title">Delivery Details</h2>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First Name *</label><input class="form-input" type="text" placeholder="Rahul"></div>
+          <div class="form-group"><label class="form-label">Last Name *</label><input class="form-input" type="text" placeholder="Sharma"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Email Address *</label><input class="form-input" type="email" placeholder="rahul@email.com"></div>
+        <div class="form-group"><label class="form-label">Phone Number *</label><input class="form-input" type="tel" placeholder="+91 98765 43210"></div>
+        <div class="form-group"><label class="form-label">Address *</label><input class="form-input" type="text" placeholder="Street address, flat/house no."></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">City *</label><input class="form-input" type="text" placeholder="Mumbai"></div>
+          <div class="form-group"><label class="form-label">PIN Code *</label><input class="form-input" type="text" placeholder="400001"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">State *</label>
+            <select class="form-select form-input">
+              <option>Maharashtra</option><option>Karnataka</option><option>Tamil Nadu</option><option>Delhi</option><option>Gujarat</option><option>Rajasthan</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Country</label><input class="form-input" type="text" value="India" readonly></div>
+        </div>
+
+        <h2 class="checkout-section-title">Payment Method</h2>
+        <div class="payment-options">
+          <div class="payment-option selected" onclick="selectPayment(this)">
+            <input type="radio" name="payment" checked>
+            <div><div class="payment-option-label">Razorpay</div><div class="payment-option-sub">Pay via UPI, Card, Net Banking, Wallets</div></div>
+            <span class="razorpay-badge">SECURE</span>
+          </div>
+          <div class="payment-option" onclick="selectPayment(this)">
+            <input type="radio" name="payment">
+            <div><div class="payment-option-label">Cash on Delivery</div><div class="payment-option-sub">Pay when you receive your order</div></div>
+          </div>
+        </div>
+
+        <button class="btn btn-accent btn-lg btn-full" onclick="placeOrder()" style="margin-top:2rem">
+          Place Order & Pay ₹2,598 →
+        </button>
+        <p style="font-size:0.75rem;color:var(--gray-500);text-align:center;margin-top:1rem">🔒 Your payment is secured by 256-bit SSL encryption</p>
+      </div>
+
+      <!-- ORDER SUMMARY SIDEBAR -->
+      <div class="order-summary" style="position:sticky;top:80px">
+        <h3 class="summary-title">YOUR ORDER</h3>
+        <div style="border-bottom:var(--border);padding-bottom:1.25rem;margin-bottom:1.25rem">
+          <div style="display:flex;gap:1rem;margin-bottom:1rem;align-items:center">
+            <div style="width:60px;height:75px;background:var(--gray-200);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-display);font-size:1.2rem;color:var(--gray-400)">①</div>
+            <div><div style="font-size:0.875rem;font-weight:500">Signature Oversized Tee</div><div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray-500)">Black / M × 1</div><div style="font-size:0.875rem;font-weight:500;margin-top:0.25rem">₹1,299</div></div>
+          </div>
+          <div style="display:flex;gap:1rem;align-items:center">
+            <div style="width:60px;height:75px;background:var(--gray-200);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-display);font-size:1.2rem;color:var(--gray-400)">②</div>
+            <div><div style="font-size:0.875rem;font-weight:500">Classic Cargo Jogger</div><div style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray-500)">Forest / L × 1</div><div style="font-size:0.875rem;font-weight:500;margin-top:0.25rem">₹1,299</div></div>
+          </div>
+        </div>
+        <div class="summary-row"><span>Subtotal</span><span>₹2,598</span></div>
+        <div class="summary-row"><span>Shipping</span><span style="color:var(--green)">FREE</span></div>
+        <div class="summary-row"><span>Tax (GST 5%)</span><span>₹130</span></div>
+        <div class="summary-row summary-total"><span>Total</span><span>₹2,728</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ORDER SUCCESS PAGE ========== -->
+<div class="page" id="page-success">
+  <div class="success-page">
+    <div class="success-inner">
+      <div class="success-icon">✓</div>
+      <h1 class="success-title">ORDER PLACED!</h1>
+      <p class="success-subtitle">Thank you for shopping with DRIP! Your order has been confirmed and will be shipped within 24 hours. You'll receive an email and SMS confirmation shortly.</p>
+      <div class="order-details-box">
+        <h3 style="font-family:var(--font-display);font-size:1.2rem;margin-bottom:1rem;letter-spacing:0.05em">ORDER DETAILS</h3>
+        <div class="order-detail-row"><span>Order ID</span><span style="font-family:var(--font-mono);font-size:0.8rem">#DRP-2025-4872</span></div>
+        <div class="order-detail-row"><span>Items</span><span>2 items</span></div>
+        <div class="order-detail-row"><span>Total Paid</span><span style="font-weight:500">₹2,728</span></div>
+        <div class="order-detail-row"><span>Payment</span><span style="color:var(--green)">✓ Razorpay (UPI)</span></div>
+        <div class="order-detail-row"><span>Estimated Delivery</span><span>Apr 3–5, 2025</span></div>
+        <div class="order-detail-row"><span>Tracking</span><span style="color:var(--accent);font-family:var(--font-mono);font-size:0.8rem">DRPSHIP8472XB</span></div>
+      </div>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary btn-lg" onclick="showPage('shop')">Continue Shopping</button>
+        <button class="btn btn-outline btn-lg" onclick="showPage('home')">← Back to Home</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ABOUT PAGE ========== -->
+<div class="page" id="page-about">
+  <div class="content-page">
+    <div class="content-hero">
+      <h1 class="content-hero-title">OUR STORY</h1>
+      <p class="content-hero-sub">Born in the streets, built for the bold. DRIP is more than clothing — it's a movement for those who dare to be different.</p>
+    </div>
+    <div class="about-grid">
+      <div class="about-img">
+        <div style="text-align:center;color:var(--gray-300)">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <p style="font-family:var(--font-mono);font-size:0.7rem;letter-spacing:0.1em;margin-top:1rem">FOUNDERS PHOTO</p>
+        </div>
+      </div>
+      <div>
+        <p class="section-sub">Founded 2021</p>
+        <h2 style="font-family:var(--font-display);font-size:2.5rem;margin-bottom:1.5rem;line-height:1">FROM PASSION TO PURPOSE</h2>
+        <p style="color:var(--gray-700);line-height:1.8;margin-bottom:1rem;font-size:0.95rem">DRIP was founded in 2021 by two friends who were tired of choosing between quality and affordability in Indian streetwear. We set out to build a brand that proves premium doesn't have to mean expensive.</p>
+        <p style="color:var(--gray-700);line-height:1.8;margin-bottom:1rem;font-size:0.95rem">Every piece in our collection is designed in-house, crafted from ethically sourced materials, and manufactured in India. We believe in slow fashion — fewer, better pieces that last.</p>
+        <p style="color:var(--gray-700);line-height:1.8;font-size:0.95rem">Today, we're a community of 12,000+ customers across India who share our belief: that what you wear is a statement of who you are.</p>
+      </div>
+    </div>
+    <div class="about-values">
+      <div class="value-card">
+        <div class="value-num">01</div>
+        <div class="value-title">Quality First</div>
+        <div class="value-text">We use only premium fabrics — 100% organic cotton, sustainable blends, and ethical sourcing.</div>
+      </div>
+      <div class="value-card">
+        <div class="value-num">02</div>
+        <div class="value-title">Made in India</div>
+        <div class="value-text">Proudly manufactured in India, supporting local artisans and factories with fair wages.</div>
+      </div>
+      <div class="value-card">
+        <div class="value-num">03</div>
+        <div class="value-title">Community Driven</div>
+        <div class="value-text">Our designs come from you. We co-create with our community every drop.</div>
+      </div>
+    </div>
+  </div>
+  <footer style="background:var(--black);color:var(--white);padding:2rem;text-align:center">
+    <div style="font-family:var(--font-display);font-size:2rem;margin-bottom:0.5rem">DRIP</div>
+    <p style="font-size:0.8rem;color:rgba(255,255,255,0.4)">© 2025 DRIP. Premium Clothing Brand.</p>
+  </footer>
+</div>
+
+<!-- ========== CONTACT PAGE ========== -->
+<div class="page" id="page-contact">
+  <div class="content-page">
+    <div class="content-hero">
+      <h1 class="content-hero-title">GET IN TOUCH</h1>
+      <p class="content-hero-sub">Have a question, need help with your order, or just want to say hello? We'd love to hear from you.</p>
+    </div>
+    <div class="contact-grid">
+      <div>
+        <div class="contact-info-item">
+          <div class="contact-icon">📧</div>
+          <div><div class="contact-detail-title">Email Us</div><div class="contact-detail-text">hello@dripclothing.in<br>support@dripclothing.in<br>Mon–Sat, 9 AM – 6 PM</div></div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-icon">📱</div>
+          <div><div class="contact-detail-title">WhatsApp Support</div><div class="contact-detail-text">+91 98765 43210<br>Quick replies within 2 hours<br>Mon–Sat, 9 AM – 9 PM</div></div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-icon">📍</div>
+          <div><div class="contact-detail-title">Our Studio</div><div class="contact-detail-text">42 Koramangala, 5th Block<br>Bangalore, Karnataka 560034<br>Visit by appointment only</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="form-group"><label class="form-label">Your Name</label><input class="form-input" type="text" placeholder="Priya Sharma"></div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" placeholder="priya@email.com"></div>
+        <div class="form-group"><label class="form-label">Subject</label>
+          <select class="form-select form-input"><option>Order Issue</option><option>Return/Exchange</option><option>Product Query</option><option>Collaboration</option><option>Other</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Message</label><textarea class="form-input" rows="5" placeholder="Tell us how we can help..." style="resize:vertical"></textarea></div>
+        <button class="btn btn-primary btn-full" onclick="showToast('Message sent! We\'ll reply within 24 hours.')">Send Message →</button>
+      </div>
+    </div>
+  </div>
+  <footer style="background:var(--black);color:var(--white);padding:2rem;text-align:center">
+    <div style="font-family:var(--font-display);font-size:2rem;margin-bottom:0.5rem">DRIP</div>
+    <p style="font-size:0.8rem;color:rgba(255,255,255,0.4)">© 2025 DRIP. Premium Clothing Brand.</p>
+  </footer>
+</div>
+
+<!-- ========== PRIVACY / TERMS PAGE ========== -->
+<div class="page" id="page-privacy">
+  <div class="content-page">
+    <div class="content-hero" style="text-align:left;padding-bottom:2rem">
+      <h1 style="font-family:var(--font-display);font-size:clamp(2.5rem,5vw,5rem)">PRIVACY POLICY</h1>
+      <p style="color:var(--gray-500);font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.1em">Last updated: March 2025</p>
+    </div>
+    <div class="policy-content">
+      <div class="policy-section">
+        <h2 class="policy-heading">Information We Collect</h2>
+        <p class="policy-text">We collect information you provide directly to us, such as when you create an account, make a purchase, or contact us for support. This includes name, email address, shipping address, phone number, and payment information.</p>
+      </div>
+      <div class="policy-section">
+        <h2 class="policy-heading">How We Use Your Information</h2>
+        <ul class="policy-list">
+          <li>Process and fulfill your orders</li>
+          <li>Send order confirmations and shipping updates</li>
+          <li>Respond to customer service requests</li>
+          <li>Send promotional communications (with your consent)</li>
+          <li>Improve our products and website</li>
+        </ul>
+      </div>
+      <div class="policy-section">
+        <h2 class="policy-heading">Data Security</h2>
+        <p class="policy-text">We implement industry-standard security measures to protect your personal information. All payment processing is handled by Razorpay, a PCI-DSS compliant payment gateway. We never store your card details on our servers.</p>
+      </div>
+      <div class="policy-section">
+        <h2 class="policy-heading">Shipping Policy</h2>
+        <p class="policy-text">We ship all orders within 24–48 hours of confirmation. Standard delivery takes 3–7 business days. Express delivery is available at checkout. Free shipping on all orders above ₹999.</p>
+      </div>
+      <div class="policy-section">
+        <h2 class="policy-heading">Return & Exchange Policy</h2>
+        <p class="policy-text">We offer hassle-free returns and exchanges within 30 days of delivery. Items must be unworn, unwashed, and in original packaging. Initiate returns via email or WhatsApp. Refunds are processed within 5–7 business days.</p>
+      </div>
+      <div class="policy-section">
+        <h2 class="policy-heading">Contact Us</h2>
+        <p class="policy-text">For any privacy concerns or policy questions, contact us at privacy@dripclothing.in or call +91 98765 43210.</p>
+      </div>
+    </div>
+  </div>
+  <footer style="background:var(--black);color:var(--white);padding:2rem;text-align:center">
+    <div style="font-family:var(--font-display);font-size:2rem;margin-bottom:0.5rem">DRIP</div>
+    <p style="font-size:0.8rem;color:rgba(255,255,255,0.4)">© 2025 DRIP. Premium Clothing Brand.</p>
+  </footer>
+</div>
+
+<!-- ========== ADMIN LOGIN ========== -->
+<div class="page" id="page-admin-login">
+  <div class="login-page">
+    <div class="login-box">
+      <div class="login-logo">DRIP</div>
+      <p class="login-sub">Admin Panel Access</p>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" value="admin@dripclothing.in"></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" value="••••••••••"></div>
+      <button class="btn btn-primary btn-full btn-lg" style="margin-top:1rem" onclick="showPage('admin')">Login to Admin →</button>
+      <p style="text-align:center;font-size:0.75rem;color:var(--gray-500);margin-top:1.5rem">Secured with 2FA. <a href="#" style="color:var(--accent)">Forgot password?</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ADMIN PANEL ========== -->
+<div class="page" id="page-admin">
+  <div class="admin-layout">
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+      <div class="admin-logo">
+        <div class="admin-logo-text">DRIP</div>
+        <div class="admin-logo-sub">Admin Panel</div>
+      </div>
+      <nav class="admin-nav">
+        <div class="admin-nav-section">Main</div>
+        <button class="admin-nav-link active" onclick="showAdminSection('dashboard', this)">
+          <span class="admin-nav-icon">◈</span> Dashboard
+        </button>
+        <div class="admin-nav-section">Catalogue</div>
+        <button class="admin-nav-link" onclick="showAdminSection('products', this)">
+          <span class="admin-nav-icon">☰</span> Products
+        </button>
+        <button class="admin-nav-link" onclick="showAdminSection('add-product', this)">
+          <span class="admin-nav-icon">＋</span> Add Product
+        </button>
+        <button class="admin-nav-link" onclick="showAdminSection('categories', this)">
+          <span class="admin-nav-icon">◫</span> Categories
+        </button>
+        <div class="admin-nav-section">Sales</div>
+        <button class="admin-nav-link" onclick="showAdminSection('orders', this)">
+          <span class="admin-nav-icon">📦</span> Orders
+        </button>
+        <button class="admin-nav-link" onclick="showAdminSection('customers', this)">
+          <span class="admin-nav-icon">👤</span> Customers
+        </button>
+        <div class="admin-nav-section">System</div>
+        <button class="admin-nav-link" onclick="showPage('home')">
+          <span class="admin-nav-icon">↗</span> View Store
+        </button>
+        <button class="admin-nav-link" onclick="showPage('admin-login')">
+          <span class="admin-nav-icon">⊗</span> Logout
+        </button>
+      </nav>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div class="admin-page-title" id="adminPageTitle">Dashboard</div>
+        <div class="admin-user">
+          <span style="font-size:0.8rem;color:var(--gray-500)">admin@dripclothing.in</span>
+          <div class="admin-avatar">AD</div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="admin-content" id="admin-dashboard">
+        <div class="admin-stats">
+          <div class="admin-stat orders">
+            <div class="admin-stat-label">Total Orders</div>
+            <div class="admin-stat-value">1,284</div>
+            <div class="admin-stat-change">↑ 12% this month</div>
+          </div>
+          <div class="admin-stat revenue">
+            <div class="admin-stat-label">Revenue (MTD)</div>
+            <div class="admin-stat-value">₹8.4L</div>
+            <div class="admin-stat-change">↑ 18% vs last month</div>
+          </div>
+          <div class="admin-stat products">
+            <div class="admin-stat-label">Active Products</div>
+            <div class="admin-stat-value">125</div>
+            <div class="admin-stat-change">12 low stock</div>
+          </div>
+          <div class="admin-stat customers">
+            <div class="admin-stat-label">Customers</div>
+            <div class="admin-stat-value">12.4K</div>
+            <div class="admin-stat-change">↑ 340 new this week</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.25rem">
+          <div class="admin-card">
+            <div class="admin-card-title">
+              <span>Revenue — Last 7 Days</span>
+              <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gray-500)">₹1,84,290 total</span>
+            </div>
+            <div class="chart-bars" style="margin-bottom:2rem">
+              <div class="chart-bar" style="height:60%"><span class="chart-bar-label">Mon</span></div>
+              <div class="chart-bar" style="height:80%"><span class="chart-bar-label">Tue</span></div>
+              <div class="chart-bar" style="height:45%"><span class="chart-bar-label">Wed</span></div>
+              <div class="chart-bar" style="height:90%"><span class="chart-bar-label">Thu</span></div>
+              <div class="chart-bar" style="height:70%"><span class="chart-bar-label">Fri</span></div>
+              <div class="chart-bar" style="height:100%;background:var(--accent)"><span class="chart-bar-label">Sat</span></div>
+              <div class="chart-bar" style="height:55%"><span class="chart-bar-label">Sun</span></div>
+            </div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-title">Order Status</div>
+            <div style="display:flex;flex-direction:column;gap:1rem">
+              <div><div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:0.375rem"><span>Pending</span><span>23</span></div><div style="height:6px;background:var(--gray-200)"><div style="height:100%;width:18%;background:#ffc107"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:0.375rem"><span>Paid</span><span>47</span></div><div style="height:6px;background:var(--gray-200)"><div style="height:100%;width:37%;background:#17a2b8"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:0.375rem"><span>Shipped</span><span>89</span></div><div style="height:6px;background:var(--gray-200)"><div style="height:100%;width:71%;background:#007bff"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:0.375rem"><span>Delivered</span><span>125</span></div><div style="height:6px;background:var(--gray-200)"><div style="height:100%;width:100%;background:#28a745"></div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-card" style="margin-top:0">
+          <div class="admin-card-title">Recent Orders <button class="btn btn-sm btn-outline" onclick="showAdminSection('orders', document.querySelector('[onclick*=orders]'))">View All</button></div>
+          <table class="admin-table">
+            <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Amount</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4872</td><td>Priya Sharma</td><td>2 items</td><td style="font-weight:500">₹2,598</td><td style="color:var(--gray-500)">Today, 2:14 PM</td><td><span class="status-pill status-paid">Paid</span></td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4871</td><td>Arjun Kumar</td><td>1 item</td><td style="font-weight:500">₹1,299</td><td style="color:var(--gray-500)">Today, 11:32 AM</td><td><span class="status-pill status-shipped">Shipped</span></td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4870</td><td>Kavya Reddy</td><td>3 items</td><td style="font-weight:500">₹4,197</td><td style="color:var(--gray-500)">Yesterday</td><td><span class="status-pill status-delivered">Delivered</span></td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4869</td><td>Rohit Mehta</td><td>1 item</td><td style="font-weight:500">₹2,199</td><td style="color:var(--gray-500)">Yesterday</td><td><span class="status-pill status-pending">Pending</span></td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PRODUCTS LIST -->
+      <div class="admin-content" id="admin-products" style="display:none">
+        <div class="admin-action-bar">
+          <input class="admin-search" placeholder="Search products...">
+          <select class="admin-select" style="width:auto;padding:0.625rem 1rem">
+            <option>All Categories</option><option>T-Shirts</option><option>Hoodies</option><option>Joggers</option><option>Jackets</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="showAdminSection('add-product', null)">+ Add Product</button>
+        </div>
+        <div class="admin-card">
+          <table class="admin-table">
+            <thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="adminProductsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ADD PRODUCT -->
+      <div class="admin-content" id="admin-add-product" style="display:none">
+        <div class="admin-card admin-form">
+          <h3 style="font-weight:500;margin-bottom:1.5rem">Product Information</h3>
+          <div class="form-group"><label class="form-label">Product Name</label><input class="admin-input" type="text" placeholder="e.g. Signature Oversized Tee"></div>
+          <div class="admin-form-row">
+            <div class="form-group"><label class="form-label">Category</label><select class="admin-select"><option>T-Shirts</option><option>Hoodies</option><option>Joggers</option><option>Jackets</option></select></div>
+            <div class="form-group"><label class="form-label">SKU</label><input class="admin-input" type="text" placeholder="DRP-TSH-001"></div>
+          </div>
+          <div class="admin-form-row">
+            <div class="form-group"><label class="form-label">Price (₹)</label><input class="admin-input" type="number" placeholder="1299"></div>
+            <div class="form-group"><label class="form-label">Original Price (₹)</label><input class="admin-input" type="number" placeholder="1799"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Description</label><textarea class="admin-textarea" placeholder="Product description..."></textarea></div>
+          <div class="admin-form-row">
+            <div class="form-group"><label class="form-label">Available Sizes</label><input class="admin-input" type="text" placeholder="XS, S, M, L, XL, XXL"></div>
+            <div class="form-group"><label class="form-label">Stock Quantity</label><input class="admin-input" type="number" placeholder="100"></div>
+          </div>
+          <div class="form-group"><label class="form-label" style="margin-bottom:0.75rem">Product Images</label>
+            <div class="upload-zone" onclick="showToast('File upload ready in full implementation')">
+              <div class="upload-icon">📸</div>
+              <div class="upload-text">Click to upload or drag & drop</div>
+              <div class="upload-sub">PNG, JPG up to 5MB each. Max 6 images.</div>
+            </div>
+          </div>
+          <div class="admin-form-row">
+            <div class="form-group"><label class="form-label">Status</label><select class="admin-select"><option>Active</option><option>Draft</option><option>Out of Stock</option></select></div>
+            <div class="form-group"><label class="form-label">Featured</label><select class="admin-select"><option>No</option><option>Yes</option></select></div>
+          </div>
+          <div style="display:flex;gap:1rem;margin-top:1.5rem">
+            <button class="btn btn-primary" onclick="showToast('Product saved successfully!')">Save Product</button>
+            <button class="btn btn-outline">Save as Draft</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATEGORIES -->
+      <div class="admin-content" id="admin-categories" style="display:none">
+        <div style="display:grid;grid-template-columns:300px 1fr;gap:1.5rem">
+          <div class="admin-card">
+            <h3 style="font-weight:500;margin-bottom:1.25rem">Add Category</h3>
+            <div class="form-group"><label class="form-label">Category Name</label><input class="admin-input" type="text" placeholder="e.g. Hoodies"></div>
+            <div class="form-group"><label class="form-label">Slug</label><input class="admin-input" type="text" placeholder="hoodies"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea class="admin-textarea" style="min-height:80px" placeholder="Category description..."></textarea></div>
+            <button class="btn btn-primary btn-full" onclick="showToast('Category added!')">Add Category</button>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-title">All Categories</div>
+            <table class="admin-table">
+              <thead><tr><th>Name</th><th>Products</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td>T-Shirts</td><td>48</td><td><span class="status-pill status-delivered">Active</span></td><td><button class="btn btn-sm btn-outline">Edit</button></td></tr>
+                <tr><td>Hoodies</td><td>32</td><td><span class="status-pill status-delivered">Active</span></td><td><button class="btn btn-sm btn-outline">Edit</button></td></tr>
+                <tr><td>Joggers</td><td>26</td><td><span class="status-pill status-delivered">Active</span></td><td><button class="btn btn-sm btn-outline">Edit</button></td></tr>
+                <tr><td>Jackets</td><td>19</td><td><span class="status-pill status-delivered">Active</span></td><td><button class="btn btn-sm btn-outline">Edit</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORDERS -->
+      <div class="admin-content" id="admin-orders" style="display:none">
+        <div class="admin-action-bar">
+          <input class="admin-search" placeholder="Search orders...">
+          <select class="admin-select" style="width:auto;padding:0.625rem 1rem">
+            <option>All Status</option><option>Pending</option><option>Paid</option><option>Shipped</option><option>Delivered</option>
+          </select>
+        </div>
+        <div class="admin-card">
+          <table class="admin-table">
+            <thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>Items</th><th>Amount</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4872</td><td>Priya Sharma</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 98765 43210</td><td>2</td><td style="font-weight:500">₹2,598</td><td style="color:var(--gray-500);font-size:0.8rem">30 Mar 2025</td><td><span class="status-pill status-paid">Paid</span></td><td><select class="admin-select" style="padding:0.25rem 0.5rem;font-size:0.75rem;width:auto"><option>Paid</option><option>Shipped</option><option>Delivered</option></select></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4871</td><td>Arjun Kumar</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 87654 32109</td><td>1</td><td style="font-weight:500">₹1,299</td><td style="color:var(--gray-500);font-size:0.8rem">30 Mar 2025</td><td><span class="status-pill status-shipped">Shipped</span></td><td><select class="admin-select" style="padding:0.25rem 0.5rem;font-size:0.75rem;width:auto"><option>Shipped</option><option>Delivered</option></select></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4870</td><td>Kavya Reddy</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 76543 21098</td><td>3</td><td style="font-weight:500">₹4,197</td><td style="color:var(--gray-500);font-size:0.8rem">29 Mar 2025</td><td><span class="status-pill status-delivered">Delivered</span></td><td><select class="admin-select" style="padding:0.25rem 0.5rem;font-size:0.75rem;width:auto"><option>Delivered</option></select></td></tr>
+              <tr><td style="font-family:var(--font-mono);font-size:0.75rem">#DRP-4869</td><td>Rohit Mehta</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 65432 10987</td><td>1</td><td style="font-weight:500">₹2,199</td><td style="color:var(--gray-500);font-size:0.8rem">29 Mar 2025</td><td><span class="status-pill status-pending">Pending</span></td><td><select class="admin-select" style="padding:0.25rem 0.5rem;font-size:0.75rem;width:auto"><option>Pending</option><option>Paid</option><option>Shipped</option></select></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="admin-content" id="admin-customers" style="display:none">
+        <div class="admin-action-bar">
+          <input class="admin-search" placeholder="Search customers...">
+          <button class="btn btn-outline btn-sm">Export CSV</button>
+        </div>
+        <div class="admin-card">
+          <table class="admin-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Total Spent</th><th>Last Order</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>Priya Sharma</td><td style="font-size:0.8rem;color:var(--gray-500)">priya@email.com</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 98765 43210</td><td>8</td><td style="font-weight:500">₹12,480</td><td style="color:var(--gray-500);font-size:0.8rem">Today</td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+              <tr><td>Arjun Kumar</td><td style="font-size:0.8rem;color:var(--gray-500)">arjun@email.com</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 87654 32109</td><td>5</td><td style="font-weight:500">₹7,890</td><td style="color:var(--gray-500);font-size:0.8rem">Today</td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+              <tr><td>Kavya Reddy</td><td style="font-size:0.8rem;color:var(--gray-500)">kavya@email.com</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 76543 21098</td><td>12</td><td style="font-weight:500">₹18,230</td><td style="color:var(--gray-500);font-size:0.8rem">Yesterday</td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+              <tr><td>Rohit Mehta</td><td style="font-size:0.8rem;color:var(--gray-500)">rohit@email.com</td><td style="font-family:var(--font-mono);font-size:0.75rem">+91 65432 10987</td><td>3</td><td style="font-weight:500">₹4,890</td><td style="color:var(--gray-500);font-size:0.8rem">29 Mar</td><td><button class="btn btn-sm btn-outline">View</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ====== DATA ======
+const products = [
+  { id:1, name:'Signature Oversized Tee', category:'T-Shirts', price:1299, original:1799, badge:'bestseller', icon:'👕', color:'#2c2c2c', stock:45 },
+  { id:2, name:'Classic Cargo Jogger', category:'Joggers', price:1499, original:1999, badge:'new', icon:'👖', color:'#2d6a4f', stock:32 },
+  { id:3, name:'Heavyweight Hoodie', category:'Hoodies', price:2299, original:2999, badge:'sale', icon:'🧥', color:'#3c1515', stock:18 },
+  { id:4, name:'Utility Bomber Jacket', category:'Jackets', price:3499, original:4499, badge:'new', icon:'🧣', color:'#1a2e4a', stock:12 },
+  { id:5, name:'Drop-Shoulder Polo', category:'T-Shirts', price:999, original:1299, badge:'bestseller', icon:'👔', color:'#4a3a2a', stock:67 },
+  { id:6, name:'Relaxed Fit Chinos', category:'Joggers', price:1799, original:2199, badge:'', icon:'👗', color:'#3d3a34', stock:29 },
+  { id:7, name:'Premium Zip Hoodie', category:'Hoodies', price:2599, original:3199, badge:'sale', icon:'🧤', color:'#1c1c1c', stock:8 },
+  { id:8, name:'Oversized Graphic Tee', category:'T-Shirts', price:1099, original:1399, badge:'new', icon:'🎨', color:'#5a3a1a', stock:55 },
+];
+
+let cartCount = 2;
+let qty = 1;
+
+function renderProductCard(p) {
+  const badgeHtml = p.badge ? `<span class="product-badge badge-${p.badge}">${p.badge}</span>` : '';
+  const discountPct = Math.round((1 - p.price/p.original)*100);
+  return `<div class="product-card" onclick="openProduct(${p.id})">
+    <div class="product-img" style="background:${p.color}20">
+      ${badgeHtml}
+      <div class="product-img-placeholder" style="font-size:3.5rem">${p.icon}</div>
+      <div class="product-actions"><button onclick="event.stopPropagation();addToCart()">Quick Add to Cart</button></div>
+    </div>
+    <div class="product-category">${p.category}</div>
+    <div class="product-name">${p.name}</div>
+    <div class="product-price">
+      <span class="price-current">₹${p.price.toLocaleString()}</span>
+      <span class="price-original">₹${p.original.toLocaleString()}</span>
+      <span class="price-discount">${discountPct}% off</span>
+    </div>
+  </div>`;
+}
+
+function initProducts() {
+  const fp = document.getElementById('featuredProducts');
+  const bs = document.getElementById('bestsellers');
+  const sp = document.getElementById('shopProducts');
+  const rp = document.getElementById('relatedProducts');
+  const apt = document.getElementById('adminProductsTable');
+
+  if(fp) fp.innerHTML = products.slice(0,4).map(renderProductCard).join('');
+  if(bs) bs.innerHTML = products.slice(4,8).map(renderProductCard).join('');
+  if(sp) sp.innerHTML = products.map(renderProductCard).join('');
+  if(rp) rp.innerHTML = products.slice(0,4).map(renderProductCard).join('');
+
+  if(apt) apt.innerHTML = products.map(p => `<tr>
+    <td><div style="display:flex;align-items:center;gap:0.75rem"><span style="font-size:1.5rem">${p.icon}</span><span>${p.name}</span></div></td>
+    <td><span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gray-500)">${p.category}</span></td>
+    <td style="font-weight:500">₹${p.price.toLocaleString()}</td>
+    <td style="${p.stock < 20 ? 'color:var(--red)' : ''}">${p.stock} units</td>
+    <td><span class="status-pill ${p.stock > 0 ? 'status-delivered' : 'status-pending'}">${p.stock > 0 ? 'Active' : 'OOS'}</span></td>
+    <td><div style="display:flex;gap:0.5rem"><button class="btn btn-sm btn-outline">Edit</button><button class="btn btn-sm" style="background:var(--red);color:white;padding:0.3rem 0.75rem;font-size:0.75rem;border:none;cursor:pointer">Del</button></div></td>
+  </tr>`).join('');
+}
+
+function renderCartItems() {
+  const ci = document.getElementById('cartItems');
+  if(!ci) return;
+  const cartData = [
+    { id:1, name:'Signature Oversized Tee', meta:'Black / M', price:1299, icon:'👕' },
+    { id:2, name:'Classic Cargo Jogger', meta:'Forest / L', price:1299, icon:'👖' },
+  ];
+  ci.innerHTML = cartData.map(item => `<div class="cart-item">
+    <div class="cart-item-img">${item.icon}</div>
+    <div>
+      <div class="cart-item-name">${item.name}</div>
+      <div class="cart-item-meta">${item.meta}</div>
+      <div class="cart-item-qty">
+        <button class="cart-qty-btn" onclick="cartQty(this,-1)">−</button>
+        <div class="cart-qty-num">1</div>
+        <button class="cart-qty-btn" onclick="cartQty(this,1)">+</button>
+      </div>
+    </div>
+    <div>
+      <div class="cart-item-price">₹${item.price.toLocaleString()}</div>
+      <button class="cart-remove" onclick="this.closest('.cart-item').remove(); showToast('Item removed')">Remove</button>
+    </div>
+  </div>`).join('');
+}
+
+// ====== ROUTING ======
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-' + pageId);
+  if(target) { target.classList.add('active'); window.scrollTo(0,0); }
+  const navbar = document.getElementById('navbar');
+  const adminPages = ['admin','admin-login'];
+  navbar.style.display = adminPages.includes(pageId) ? 'none' : 'flex';
+  document.querySelector('.whatsapp-btn').style.display = pageId === 'admin' ? 'none' : 'flex';
+  if(pageId === 'cart') renderCartItems();
+  if(pageId === 'home' || pageId === 'shop' || pageId === 'product') initProducts();
+}
+
+function openProduct(id) {
+  const p = products.find(x => x.id === id);
+  if(p) {
+    document.getElementById('detailProductName').textContent = p.name;
+    document.getElementById('breadcrumbProduct').textContent = p.name;
+    showPage('product');
+  }
+}
+
+// ====== ADMIN ======
+function showAdminSection(section, btn) {
+  document.querySelectorAll('.admin-content').forEach(c => c.style.display = 'none');
+  const target = document.getElementById('admin-' + section);
+  if(target) target.style.display = 'block';
+  document.querySelectorAll('.admin-nav-link').forEach(l => l.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const titles = { dashboard:'Dashboard', products:'Products', 'add-product':'Add Product', categories:'Categories', orders:'Orders', customers:'Customers' };
+  const el = document.getElementById('adminPageTitle');
+  if(el) el.textContent = titles[section] || 'Admin';
+  if(section === 'products') initProducts();
+}
+
+// ====== INTERACTIONS ======
+function addToCart() {
+  cartCount++;
+  document.getElementById('cartCount').textContent = cartCount;
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg || 'Added to cart!';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function addToCart() {
+  cartCount++;
+  document.getElementById('cartCount').textContent = cartCount;
+  showToast('Added to cart! 🛍️');
+}
+
+function changeQty(delta) {
+  qty = Math.max(1, qty + delta);
+  document.getElementById('qtyNum').textContent = qty;
+}
+
+function cartQty(btn, delta) {
+  const numEl = btn.parentElement.querySelector('.cart-qty-num');
+  let n = parseInt(numEl.textContent) + delta;
+  if(n < 1) n = 1;
+  numEl.textContent = n;
+}
+
+function selectSize(el) {
+  el.parentElement.querySelectorAll('.size-option').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectColor(el) {
+  el.parentElement.querySelectorAll('.color-option').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectPayment(el) {
+  document.querySelectorAll('.payment-option').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input').checked = true;
+}
+
+function placeOrder() {
+  showPage('success');
+}
+
+function applyCoupon() {
+  const code = document.getElementById('couponInput').value.toUpperCase();
+  const discount = document.getElementById('cartDiscount');
+  const total = document.getElementById('cartTotal');
+  if(code === 'DRIP30') {
+    discount.textContent = '−₹780';
+    total.textContent = '₹1,818';
+    showToast('Coupon applied! 30% off');
+  } else if(code === 'WELCOME10') {
+    discount.textContent = '−₹260';
+    total.textContent = '₹2,338';
+    showToast('Coupon applied! 10% off');
+  } else {
+    showToast('Invalid coupon code');
+  }
+}
+
+function clearFilters() {
+  document.querySelectorAll('.filter-option input').forEach(i => i.checked = false);
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  showToast('Filters cleared');
+}
+
+function handleNewsletter(e) {
+  e.preventDefault();
+  showToast('Subscribed! Welcome to DRIP 🎉');
+  e.target.reset();
+}
+
+function toggleMobileNav() {
+  document.getElementById('mobileNav').classList.toggle('open');
+}
+function closeMobileNav() {
+  document.getElementById('mobileNav').classList.remove('open');
+}
+
+// Navbar scroll effect
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// Init
+initProducts();
+</script>
+</body>
+</html>
