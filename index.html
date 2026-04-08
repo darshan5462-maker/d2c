@@ -22,8 +22,8 @@
 // 5. Paste BOTH values below:
 // ══════════════════════════════════════════════════════════════
 window._SYNC = {
-  binId:  '69d6461336566621a88e9c7f ',           // ← PASTE YOUR BIN ID HERE  e.g. "64abc123def456"
-  apiKey: '$2a$10$Y.e.r9rQe750oDAMvf.tMud9st5n.whEK8089kpmoI/WusO665bMy',           // ← PASTE YOUR API KEY HERE e.g. "yourkey123"
+  binId:  '',           // ← PASTE YOUR BIN ID HERE  e.g. "64abc123def456"
+  apiKey: '',           // ← PASTE YOUR API KEY HERE e.g. "yourkey123"
   ready:  false,
   lastSync: 0
 };
@@ -1286,16 +1286,60 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
         <div class="adm-bc">WAA Kids Closet / <span>Dashboard</span></div>
         <!-- Firebase setup reminder — shown only when Firebase is NOT configured -->
         <div id="fb-setup-reminder" style="display:none">
-          <div style="display:flex;align-items:flex-start;gap:1rem;background:rgba(252,211,77,.1);border:2px solid rgba(252,211,77,.4);border-radius:14px;padding:1.2rem 1.4rem;margin-bottom:1.4rem;flex-wrap:wrap">
-            <div style="font-size:2rem;flex-shrink:0">⚠️</div>
-            <div style="flex:1;min-width:200px">
-              <div style="font-weight:800;color:#fcd34d;font-size:.92rem;margin-bottom:.3rem">Products only visible on THIS device</div>
-              <div style="font-size:.82rem;color:#7c6fa0;font-weight:600;line-height:1.6">
-                Cloud sync not configured. Products added here are <strong style="color:#ede9ff">not visible on customer phones or other devices.</strong><br>
-                Fix in 2 minutes: Add a free JSONBin.io API key to this file → products sync everywhere instantly.
+          <!-- Cloud Sync Setup Card -->
+          <div style="background:rgba(192,132,252,.08);border:2px solid rgba(192,132,252,.3);border-radius:16px;padding:1.5rem;margin-bottom:1.4rem">
+            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem;flex-wrap:wrap">
+              <span style="font-size:1.5rem">☁️</span>
+              <div style="flex:1">
+                <div style="font-weight:800;color:#c084fc;font-size:.95rem">Enable Cloud Sync — Products Visible on All Devices</div>
+                <div style="font-size:.78rem;color:#7c6fa0;font-weight:600;margin-top:.2rem">Free · 2 minutes setup · No coding needed</div>
+              </div>
+              <button onclick="document.getElementById('sync-setup-expanded').style.display=document.getElementById('sync-setup-expanded').style.display==='none'?'block':'none'" style="background:rgba(192,132,252,.15);color:#c084fc;border:1.5px solid rgba(192,132,252,.3);padding:.4rem 1rem;border-radius:50px;font-weight:800;font-size:.78rem;cursor:pointer">Setup Guide ▾</button>
+            </div>
+
+            <!-- Quick entry — paste credentials directly here -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.8rem">
+              <div>
+                <label style="display:block;font-size:.68rem;font-weight:800;color:#7c6fa0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">JSONBin Bin ID</label>
+                <input id="sync-bin-id" type="text" placeholder="64abc123def456..." style="width:100%;padding:.65rem .9rem;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.06);color:#ede9ff;font-size:.83rem;outline:none" oninput="checkSyncInputs()">
+              </div>
+              <div>
+                <label style="display:block;font-size:.68rem;font-weight:800;color:#7c6fa0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">JSONBin API Key</label>
+                <input id="sync-api-key" type="password" placeholder="$2b$10$..." style="width:100%;padding:.65rem .9rem;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.06);color:#ede9ff;font-size:.83rem;outline:none" oninput="checkSyncInputs()">
               </div>
             </div>
-            <button onclick="showSyncGuide()" style="background:linear-gradient(135deg,#c084fc,#f472b6);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:50px;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;flex-shrink:0">☁️ Enable Cloud Sync →</button>
+            <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+              <button id="sync-connect-btn" onclick="applySyncCredentials()" disabled style="background:rgba(192,132,252,.3);color:#9b6fc4;border:none;padding:.6rem 1.4rem;border-radius:50px;font-weight:800;font-size:.82rem;cursor:not-allowed">Connect →</button>
+              <button onclick="showSyncGuide()" style="background:none;color:#7c6fa0;border:1.5px solid rgba(255,255,255,.08);padding:.55rem 1rem;border-radius:50px;font-weight:700;font-size:.78rem;cursor:pointer">📋 Step-by-step guide</button>
+              <div id="sync-status-msg" style="font-size:.78rem;font-weight:700;color:#4ecb71;display:none">✅ Connected! Products now sync to all devices.</div>
+            </div>
+
+            <!-- Expandable setup guide -->
+            <div id="sync-setup-expanded" style="display:none;margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.07)">
+              <div style="font-size:.8rem;color:#ede9ff;font-weight:700;margin-bottom:.8rem">How to get your free JSONBin credentials:</div>
+              <div style="display:flex;flex-direction:column;gap:.6rem">
+                <div style="display:flex;gap:.75rem;align-items:flex-start">
+                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">1</div>
+                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Go to <a href="https://jsonbin.io" target="_blank" style="color:#c084fc">jsonbin.io</a> → Sign up free (any email)</div>
+                </div>
+                <div style="display:flex;gap:.75rem;align-items:flex-start">
+                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">2</div>
+                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Click <strong style="color:#ede9ff">New Bin</strong> → paste <code style="background:rgba(255,255,255,.08);padding:.1rem .4rem;border-radius:4px;color:#c084fc">{"products":[],"categories":[]}</code> → click Create</div>
+                </div>
+                <div style="display:flex;gap:.75rem;align-items:flex-start">
+                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">3</div>
+                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Copy the <strong style="color:#ede9ff">BIN ID</strong> from the URL (e.g. 64abc123...)</div>
+                </div>
+                <div style="display:flex;gap:.75rem;align-items:flex-start">
+                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">4</div>
+                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Click <strong style="color:#ede9ff">API Keys</strong> (top menu) → Create Key → copy the key</div>
+                </div>
+                <div style="display:flex;gap:.75rem;align-items:flex-start">
+                  <div style="background:#4ecb71;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">5</div>
+                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Paste both above and click <strong style="color:#4ecb71">Connect</strong> — products sync to all devices instantly! ✅</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="astats">
@@ -2522,6 +2566,75 @@ function startAutoSync() {
 
 // ══ INIT ══
 function doEditCatMsg(){toast("To edit: delete this category and add a new one with the updated name");}
+
+// ══ SYNC CREDENTIAL UI ══
+function checkSyncInputs() {
+  var binId  = (document.getElementById('sync-bin-id')||{}).value || '';
+  var apiKey = (document.getElementById('sync-api-key')||{}).value || '';
+  var btn = document.getElementById('sync-connect-btn');
+  if (!btn) return;
+  var ready = binId.trim().length > 10 && apiKey.trim().length > 10;
+  btn.disabled = !ready;
+  btn.style.background = ready ? 'linear-gradient(135deg,#c084fc,#f472b6)' : 'rgba(192,132,252,.3)';
+  btn.style.color = ready ? '#fff' : '#9b6fc4';
+  btn.style.cursor = ready ? 'pointer' : 'not-allowed';
+}
+
+function applySyncCredentials() {
+  var binId  = (document.getElementById('sync-bin-id')||{}).value.trim();
+  var apiKey = (document.getElementById('sync-api-key')||{}).value.trim();
+  if (!binId || !apiKey) { toast('Enter both Bin ID and API Key','❌'); return; }
+
+  // Apply to _SYNC live (no file edit needed this session)
+  window._SYNC.binId  = binId;
+  window._SYNC.apiKey = apiKey;
+  window._SYNC.ready  = true;
+
+  // Save to localStorage so it persists across refreshes
+  localStorage.setItem('waa_sync_creds', JSON.stringify({binId: binId, apiKey: apiKey}));
+
+  var btn = document.getElementById('sync-connect-btn');
+  if (btn) { btn.textContent = 'Testing…'; btn.disabled = true; }
+
+  // Test the connection
+  cloudPush().then(function(ok) {
+    if (ok) {
+      var msg = document.getElementById('sync-status-msg');
+      if (msg) msg.style.display = 'block';
+      if (btn) { btn.textContent = '✅ Connected!'; }
+      toast('Cloud sync enabled! Products now visible on all devices 🎉', '✅');
+      // Sync current products up immediately
+      cloudPull();
+      startAutoSync();
+      // Hide the reminder after 3 seconds
+      setTimeout(function() {
+        var rem = document.getElementById('fb-setup-reminder');
+        if (rem) rem.style.display = 'none';
+      }, 3000);
+    } else {
+      if (btn) { btn.textContent = 'Connect →'; btn.disabled = false; }
+      toast('Connection failed — check your Bin ID and API Key', '❌');
+      window._SYNC.ready = false;
+    }
+  });
+}
+
+// Restore saved credentials on load
+(function() {
+  try {
+    var saved = localStorage.getItem('waa_sync_creds');
+    if (saved) {
+      var creds = JSON.parse(saved);
+      if (creds.binId && creds.apiKey) {
+        window._SYNC.binId  = creds.binId;
+        window._SYNC.apiKey = creds.apiKey;
+        window._SYNC.ready  = true;
+        console.log('✅ Cloud sync restored from saved credentials');
+      }
+    }
+  } catch(e) {}
+})();
+
 renderHome();
 updBadge();
 // Pull from cloud on load + start auto-sync
