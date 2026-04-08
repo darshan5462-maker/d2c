@@ -541,7 +541,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
 .as-inp::placeholder{color:var(--am)}.as-inp:focus{border-color:var(--aa)}
 .as-sel{padding:.5rem .9rem;border:1px solid var(--abr);border-radius:50px;background:rgba(255,255,255,.06);color:var(--at);font-family:var(--fn);font-size:.77rem;font-weight:700;outline:none;cursor:pointer}
 .as-sel option{background:var(--asb);color:var(--at)}
-.abt{background:var(--aa);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:50px;font-family:var(--fn);font-size:.78rem;font-weight:800;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:.35rem}
+.abt{background:var(--aa);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:50px;font-family:var(--fn);font-size:.78rem;font-weight:800;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:.35rem}.abt:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .abt:hover{background:var(--aa2);transform:translateY(-1px)}
 .abt-o{background:transparent;color:var(--am);border:1px solid var(--abr);padding:.35rem .85rem;border-radius:50px;font-family:var(--fn);font-size:.75rem;font-weight:700;cursor:pointer;transition:all .18s}
 .abt-o:hover{border-color:var(--aa);color:var(--aa)}
@@ -1542,20 +1542,30 @@ async function adminLogout(){
 function handleImgSel(e){
   const files=Array.from(e.target.files);
   const prevEl=document.getElementById('img-prev');
+  const st=document.getElementById('up-status');
   files.forEach(f=>{
-    if(!f.type.startsWith('image/')){toast('Only image files allowed','❌');return}
-    if(f.size>5*1024*1024){toast('Max 5MB per image','❌');return}
+    if(!f.type.startsWith('image/')){toast('Only image files: PNG, JPG, WebP','❌');return}
+    if(f.size>10*1024*1024){toast('Max 10MB per image','❌');return}
+    const idx=pendImgs.length;
     pendImgs.push(f);
+    // Instant object URL preview — zero encoding delay
     const url=URL.createObjectURL(f);
     const div=document.createElement('div');div.className='ipi';
-    div.innerHTML=`<img src="${url}" alt="preview"><button class="ipd" onclick="rmPendImg(${pendImgs.length-1},this)">✕</button>`;
+    div.innerHTML=`<img src="${url}" alt="preview" style="width:100%;height:100%;object-fit:cover"><button class="ipd" onclick="rmPendImg(${idx},this,'${url}')">×</button>`;
     prevEl.appendChild(div);
   });
   e.target.value='';
+  if(st&&pendImgs.length) st.textContent=`📸 ${pendImgs.length} image${pendImgs.length>1?'s':''} ready — will compress on save`;
 }
-function rmPendImg(i,btn){
-  pendImgs.splice(i,1);btn.parentElement.remove();
+
+function rmPendImg(i,btn,url){
+  pendImgs.splice(i,1);
+  btn.parentElement.remove();
+  if(url)URL.revokeObjectURL(url);
+  const st=document.getElementById('up-status');
+  if(st) st.textContent=pendImgs.length?`📸 ${pendImgs.length} image${pendImgs.length>1?'s':''} ready`:'';
 }
+
 function clrImgPrev(){
   pendImgs=[];editImgs=[];
   document.getElementById('img-prev').innerHTML='';
@@ -1572,30 +1582,28 @@ async function saveProd(isDraft=false){
   if(!name){toast('Product name is required','❌');return}
   if(!cat){toast('Please select a category','❌');return}
   if(!price||price<=0){toast('Enter a valid price','❌');return}
+
   const saveBtn=document.getElementById('save-txt');
   const saveMsg=document.getElementById('save-msg');
+  const upStatus=document.getElementById('up-status');
   saveBtn.textContent='⏳ Saving…';
+  saveBtn.disabled=true;
   saveMsg.style.display='none';
+
   const editId=document.getElementById('edit-id').value;
   const prodId=editId||('p'+Date.now());
+
+  // ── STEP 1: Compress & encode images locally FIRST (instant) ──
   let imageUrls=[...editImgs];
-  // Upload images
   if(pendImgs.length){
-    if(window._fbReady){
-      document.getElementById('up-status').textContent='⏳ Uploading images to Firebase…';
-      for(const f of pendImgs){
-        const url=await fbUploadImg(f,prodId);
-        if(url)imageUrls.push(url);
-      }
-      document.getElementById('up-status').textContent='✅ Images uploaded to Firebase Storage';
-    } else {
-      // Fallback: base64 encode first image for localStorage
-      for(const f of pendImgs.slice(0,2)){
-        const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=e=>r(e.target.result);fr.readAsDataURL(f)});
-        imageUrls.push(b64);
-      }
-    }
+    upStatus.textContent='📸 Processing images…';
+    // Compress all images in parallel using canvas (fast, no network)
+    const compressed=await Promise.all(pendImgs.slice(0,6).map(f=>compressImg(f,800,0.75)));
+    imageUrls=[...imageUrls,...compressed.filter(Boolean)];
+    upStatus.textContent='';
   }
+
+  // ── STEP 2: Build product data ──
   const data={
     id:prodId,name,
     desc:document.getElementById('p-desc').value,
@@ -1607,23 +1615,90 @@ async function saveProd(isDraft=false){
     status:isDraft?'Draft':document.getElementById('p-status').value,
     badge:document.getElementById('p-badge').value,
     featured:document.getElementById('p-featured').value,
-    images:imageUrls,updatedAt:new Date().toISOString()
+    images:imageUrls,
+    updatedAt:new Date().toISOString()
   };
-  // Save to localStorage
+
+  // ── STEP 3: Save to localStorage IMMEDIATELY (instant) ──
   let prods=gP();
   if(editId){prods=prods.map(p=>p.id===editId?data:p)}else{prods.unshift(data)}
   sP(prods);
-  // Try Firebase
-  const fbResult=await fbSaveProd(data);
-  saveBtn.textContent='💾 Save to Firebase';
-  saveMsg.textContent=fbResult?(editId?'✅ Updated on Firebase!':'✅ Saved to Firebase!'):'✅ Saved locally (add Firebase config to sync cloud)';
-  saveMsg.style.cssText='display:block;background:rgba(78,203,113,.12);color:#4ecb71;font-size:.78rem;font-weight:700;text-align:center;padding:.5rem;border-radius:8px';
-  setTimeout(()=>{saveMsg.style.display='none'},4000);
-  if(!editId)clrProdForm();
-  renderAdmProd();renderDashStats();renderHome();
+
+  // ── STEP 4: Show success RIGHT AWAY — don't wait for Firebase ──
+  saveBtn.textContent='💾 Save Product';
+  saveBtn.disabled=false;
+  saveMsg.textContent=editId?'✅ Product updated!':'✅ Product saved!';
+  saveMsg.style.cssText='display:block;background:rgba(78,203,113,.12);color:#4ecb71;font-size:.78rem;font-weight:700;text-align:center;padding:.5rem;border-radius:8px;margin-top:.5rem';
+  setTimeout(()=>{saveMsg.style.display='none'},3000);
   toast(editId?'Product updated! ✅':'Product saved! 🎉');
+  if(!editId)clrProdForm();
+  renderAdmProd();
+  // Only re-render home if product is active/featured (avoid unnecessary work)
+  if(data.status==='Active')renderHome();
+
+  // ── STEP 5: Firebase upload in background (non-blocking) ──
+  if(window._fbReady){
+    upStatus.textContent='☁️ Syncing to cloud…';
+    fbUploadAndSync(data,pendImgs.slice(0,6),prodId).then(cloudUrls=>{
+      if(cloudUrls.length){
+        // Update with cloud URLs silently
+        data.images=cloudUrls;
+        const p2=gP();
+        const idx=p2.findIndex(p=>p.id===prodId);
+        if(idx>-1){p2[idx].images=cloudUrls;sP(p2);}
+        upStatus.textContent='✅ Synced to Firebase!';
+      } else {
+        upStatus.textContent='✅ Saved locally';
+      }
+      setTimeout(()=>{upStatus.textContent=''},3000);
+    }).catch(()=>{upStatus.textContent='';});
+  }
 }
-function saveDraft(){document.getElementById('p-status').value='Draft';saveProd(true)}
+
+// ── IMAGE COMPRESSION (canvas, very fast, no network) ──
+function compressImg(file,maxPx=800,quality=0.75){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        let w=img.width,h=img.height;
+        // Resize if larger than maxPx
+        if(w>maxPx||h>maxPx){
+          if(w>h){h=Math.round(h*maxPx/w);w=maxPx}
+          else{w=Math.round(w*maxPx/h);h=maxPx}
+        }
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=()=>resolve(null);
+      img.src=e.target.result;
+    };
+    reader.onerror=()=>resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── FIREBASE BACKGROUND UPLOAD (parallel, non-blocking) ──
+async function fbUploadAndSync(data,files,prodId){
+  if(!window._fbReady||!files.length) return [];
+  try{
+    // Upload all images in parallel (much faster than sequential)
+    const uploadPromises=files.map(f=>fbUploadImg(f,prodId).catch(()=>null));
+    const urls=(await Promise.all(uploadPromises)).filter(Boolean);
+    // Save product with cloud URLs to Firestore
+    if(urls.length){data=Object.assign({},data,{images:urls})}
+    await fbSaveProd(data);
+    return urls;
+  }catch(e){
+    // Silent fail — local save already done
+    return [];
+  }
+}
+function saveDraft(){document.getElementById('p-status').value='Draft';saveProd(true);}
 
 function clrProdForm(){
   ['p-name','p-desc','p-brand','p-price','p-mrp','p-stock','p-sizes','p-emoji','p-mt','p-md'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
