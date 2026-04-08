@@ -16,10 +16,19 @@
   import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  // ════════════════════════════════════════════════
-  // 🔥 PASTE YOUR FIREBASE CONFIG BELOW
-  // Get it from: Firebase Console → Project Settings → Your apps
-  // ════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════
+  // 🔥 STEP 1: PASTE YOUR FIREBASE CONFIG HERE
+  // 
+  // HOW TO GET IT:
+  //   1. Go to console.firebase.google.com
+  //   2. Create project "waa-kids-closet"
+  //   3. Enable: Firestore, Storage, Authentication (Email/Password)
+  //   4. Project Settings → Your Apps → Add Web App → Copy config
+  //   5. Paste below replacing all YOUR_* values
+  //
+  // WITHOUT THIS: products only show on ONE device (your phone/laptop)
+  // WITH THIS: products sync to ALL devices in real-time ✅
+  // ════════════════════════════════════════════════════════════
   const firebaseConfig = {
     apiKey: "AIzaSyACo64L7DQnwuSQUK45crk5NjoMM41voy0",
     authDomain: "waa-kids-closet.firebaseapp.com",
@@ -29,7 +38,7 @@
     appId: "1:6556252425:web:7c1b85594e40fafa78fbd8",
     measurementId: "G-MPVN29L5LK"
   };
-  // ════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════
 
   try {
     const app = initializeApp(firebaseConfig);
@@ -113,12 +122,17 @@
       }, 1000);
 
     } else {
-      console.log("ℹ️ Firebase not configured — using localStorage only. Products won't sync across devices.");
-      // Show setup reminder in admin
-      document.addEventListener('DOMContentLoaded', () => {
-        const rem = document.getElementById('fb-setup-reminder');
-        if(rem) rem.style.display = 'flex';
-      });
+      console.log("ℹ️ Firebase not configured — using localStorage only.");
+      // Show setup banner immediately and also when DOM loads
+      function showFbBanner() {
+        var rem = document.getElementById('fb-setup-reminder');
+        if (rem) rem.style.display = 'block';
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', showFbBanner);
+      } else {
+        showFbBanner();
+      }
     }
   } catch(e) {
     console.log("ℹ️ Firebase config error — using localStorage:", e.message);
@@ -1363,13 +1377,19 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
       <!-- DASHBOARD -->
       <div class="asec on" id="as-dashboard">
         <div class="adm-bc">WAA Kids Closet / <span>Dashboard</span></div>
-        <!-- Firebase setup reminder — hidden when Firebase is configured -->
-        <div id="fb-setup-reminder">
-          <div class="fbr-ico">🔥</div>
-          <div class="fbr-txt">Firebase not configured — products only visible on this device
-            <small>Add Firebase config to sync products across all devices in real-time</small>
+        <!-- Firebase setup reminder — shown only when Firebase is NOT configured -->
+        <div id="fb-setup-reminder" style="display:none">
+          <div style="display:flex;align-items:flex-start;gap:1rem;background:rgba(252,211,77,.1);border:2px solid rgba(252,211,77,.4);border-radius:14px;padding:1.2rem 1.4rem;margin-bottom:1.4rem;flex-wrap:wrap">
+            <div style="font-size:2rem;flex-shrink:0">⚠️</div>
+            <div style="flex:1;min-width:200px">
+              <div style="font-weight:800;color:#fcd34d;font-size:.92rem;margin-bottom:.3rem">Products only visible on THIS device</div>
+              <div style="font-size:.82rem;color:#7c6fa0;font-weight:600;line-height:1.6">
+                Firebase is not configured. Products you add in Admin are saved locally only — customers on other phones/laptops cannot see them.<br>
+                <strong style="color:#ede9ff">To show products to everyone: add your Firebase config to this HTML file.</strong>
+              </div>
+            </div>
+            <button onclick="showFbGuide()" style="background:linear-gradient(135deg,#c084fc,#f472b6);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:50px;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;flex-shrink:0">🔥 Setup Firebase →</button>
           </div>
-          <button class="fbr-btn" onclick="showFbGuide()">Setup Guide →</button>
         </div>
         <div class="astats">
           <div class="asc"><div><div class="asc-lbl">Total Orders</div><div class="asc-val" id="d-ordCnt">0</div><div class="asc-ch" id="d-ordNote">loading…</div></div><div class="asc-ico" style="background:rgba(252,211,77,.12)">📦</div></div>
@@ -1544,10 +1564,10 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
 // ══════════════════════════════════════════════
 
 // ── DATA KEYS ──
-var PK    = 'waa_v4_prods';
-var CK    = 'waa_v4_cats';
-var CARTK = 'waa_v4_cart';
-var ORDK  = 'waa_v4_orders';
+var PK    = 'waa_v5_prods';
+var CK    = 'waa_v5_cats';
+var CARTK = 'waa_v5_cart';
+var ORDK  = 'waa_v5_orders';
 
 // ── DEMO PRODUCTS ──
 var DEMO = [
@@ -1571,8 +1591,29 @@ var DCATS = [
 ];
 
 // ── STORAGE HELPERS ──
-function gP() { try { var d=localStorage.getItem(PK); return d ? JSON.parse(d) : DEMO.slice(); } catch(e) { return DEMO.slice(); } }
-function sP(p) { try { localStorage.setItem(PK, JSON.stringify(p)); } catch(e) { toast('Storage full — reduce image sizes','⚠️'); } }
+function gP() {
+  try {
+    var d = localStorage.getItem(PK);
+    if (!d) { sP(DEMO.slice()); return DEMO.slice(); }
+    var parsed = JSON.parse(d);
+    if (!Array.isArray(parsed) || parsed.length === 0) { sP(DEMO.slice()); return DEMO.slice(); }
+    // Ensure DEMO products are always present (merge missing ones)
+    var ids = parsed.map(function(p){return p.id;});
+    var missing = DEMO.filter(function(d){ return !ids.includes(d.id); });
+    if (missing.length > 0) {
+      var merged = parsed.concat(missing);
+      sP(merged);
+      return merged;
+    }
+    return parsed;
+  } catch(e) { return DEMO.slice(); }
+}
+function sP(p) {
+  try {
+    if (!Array.isArray(p)) return;
+    localStorage.setItem(PK, JSON.stringify(p));
+  } catch(e) { toast('Storage full — reduce image sizes','⚠️'); }
+}
 function gC() { try { var d=localStorage.getItem(CK); return d ? JSON.parse(d) : DCATS.slice(); } catch(e) { return DCATS.slice(); } }
 function sC(c) { localStorage.setItem(CK, JSON.stringify(c)); }
 function gCart() { try { var d=localStorage.getItem(CARTK); return d ? JSON.parse(d) : []; } catch(e) { return []; } }
@@ -1580,8 +1621,32 @@ function sCart(c) { localStorage.setItem(CARTK, JSON.stringify(c)); }
 function gOrders() { try { var d=localStorage.getItem(ORDK); return d ? JSON.parse(d) : []; } catch(e) { return []; } }
 function sOrders(o) { try { localStorage.setItem(ORDK, JSON.stringify(o)); } catch(e) {} }
 
-if (!localStorage.getItem(PK)) sP(DEMO);
-if (!localStorage.getItem(CK)) sC(DCATS);
+// ── SMART INIT: migrate old data + restore missing demo products ──
+(function() {
+  // Migrate from old keys (v3/v4) to v5
+  var oldKeys = ['waa_v4_prods','waa_v3_prods','waa_prods'];
+  var existing = null;
+  oldKeys.forEach(function(k) {
+    if (!existing && localStorage.getItem(k)) {
+      try { existing = JSON.parse(localStorage.getItem(k)); } catch(e) {}
+    }
+  });
+
+  var saved = localStorage.getItem(PK);
+  if (!saved) {
+    // First time: use migrated data or DEMO
+    sP(existing && existing.length > 0 ? existing : DEMO.slice());
+  } else {
+    // Already have v5 data — validate it has products
+    try {
+      var parsed = JSON.parse(saved);
+      if (!parsed || parsed.length === 0) sP(DEMO.slice()); // reset if empty
+    } catch(e) { sP(DEMO.slice()); }
+  }
+  if (!localStorage.getItem(CK)) sC(DCATS.slice());
+  // Clear old keys after migration
+  oldKeys.forEach(function(k) { localStorage.removeItem(k); });
+})();
 
 // ── STATE ──
 var curQty = 1, curProd = null, shopAgeF = 'all', shopSortF = '', discAmt = 0;
@@ -2309,8 +2374,8 @@ function renderCatT() {
       +'<td style="font-size:.76rem;color:#7c6fa0">'+(c.slug||'')+'</td>'
       +'<td>'+prods.filter(function(p){return p.cat===c.name;}).length+'</td>'
       +'<td style="display:flex;gap:.4rem">'
-      +'<button class="abt-o" onclick="toast(\'Edit: re-add with new name\')">Edit</button>'
-      +'<button class="abt-d" onclick="delCat(\''+c.id+'\')">Del</button>'
+      +'<button class="abt-o" onclick="doEditCatMsg()">Edit</button>'
+      +'<button class="abt-d" data-cid="'+c.id+'" onclick="delCat(this.dataset.cid)">Del</button>'
       +'</td></tr>';
   }).join('');
 }
@@ -2342,8 +2407,8 @@ function renderAdmProd() {
       +'<td style="'+(p.stock<15?'color:#fcd34d;font-weight:800':'')+'">'+p.stock+'</td>'
       +'<td><span class="sp '+(stCls[p.status]||'sp-dr')+'">'+p.status+'</span></td>'
       +'<td style="display:flex;gap:.4rem">'
-      +'<button class="abt-o" onclick="editProd(\''+p.id+'\')">✏️ Edit</button>'
-      +'<button class="abt-d" onclick="delProd(\''+p.id+'\')">🗑️</button>'
+      +'<button class="abt-o" data-pid="'+p.id+'" onclick="editProd(this.dataset.pid)">✏️ Edit</button>'
+      +'<button class="abt-d" data-pid="'+p.id+'" onclick="delProd(this.dataset.pid)">🗑️</button>'
       +'</td></tr>';
   }).join('');
 }
@@ -2468,18 +2533,21 @@ function copyCpn(code) {
 function doNL(e) { e.preventDefault(); toast('Subscribed! Welcome to WAA Kids Closet 💕','💕'); e.target.reset(); }
 function doContactMsg() { toast('Message sent! We\'ll reply within 1 hour 💕','💕'); }
 function showFbGuide() {
-  var msg = [
-    '1. Go to console.firebase.google.com',
-    '2. Create project: waa-kids-closet',
-    '3. Firestore Database → Create → Test mode',
-    '4. Storage → Get started → Test mode',
-    '5. Authentication → Email/Password → Enable',
-    '6. Add admin user (email + password)',
-    '7. Project Settings → Web App → Copy config',
-    '8. Open HTML file → find firebaseConfig → paste values',
-    '9. Save file → products sync to ALL devices!'
-  ].join('\n');
-  alert('FIREBASE SETUP GUIDE\n\n' + msg + '\n\nAfter setup: products added in admin appear on all customer devices instantly!');
+  var steps = 'FIREBASE SETUP — Products visible on ALL devices\n\n';
+  steps += '1.  Go to: console.firebase.google.com\n';
+  steps += '2.  Click "Add Project" → name it: waa-kids-closet\n';
+  steps += '3.  Build → Firestore Database → Create → Start in TEST mode\n';
+  steps += '4.  Build → Storage → Get started → Start in TEST mode\n';
+  steps += '5.  Build → Authentication → Get started → Email/Password → Enable\n';
+  steps += '6.  Authentication → Users → Add user → your email + password\n';
+  steps += '7.  Click gear icon → Project Settings → Your Apps\n';
+  steps += '8.  Click </> Web icon → Register app → Copy the firebaseConfig\n';
+  steps += '9.  Open this HTML file in Notepad/VSCode\n';
+  steps += '10. Find the line: apiKey: "YOUR_API_KEY"\n';
+  steps += '11. Replace all YOUR_* values with your real Firebase values\n';
+  steps += '12. Save the file → upload to your hosting\n';
+  steps += '\nDone! Every product you add will instantly show on ALL customer phones!';
+  alert(steps);
 }
 
 // ══ FIREBASE INITIAL FETCH ══
@@ -2500,6 +2568,7 @@ async function fetchFromFirebase() {
 }
 
 // ══ INIT ══
+function doEditCatMsg(){toast("To edit: delete this category and add a new one with the updated name");}
 renderHome();
 updBadge();
 document.addEventListener('fbReady', function(){ fetchFromFirebase(); });
