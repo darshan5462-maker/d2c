@@ -38,10 +38,65 @@
     const auth = getAuth(app);
     window._fb = { db, storage, auth, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc, ref, uploadBytes, getDownloadURL, deleteObject, signInWithEmailAndPassword, signOut, onAuthStateChanged };
     window._fbReady = (firebaseConfig.apiKey !== "YOUR_API_KEY");
+
     if (window._fbReady) {
-      console.log("✅ Firebase connected!");
-      document.dispatchEvent(new Event('fbReady'));
-      // Listen for auth state
+      console.log("✅ Firebase connected! Starting real-time sync…");
+
+      // ── REAL-TIME PRODUCTS LISTENER ──
+      // Fires instantly on ANY device when admin adds/edits/deletes a product
+      const prodQ = query(collection(db, 'products'), orderBy('updatedAt','desc'));
+      onSnapshot(prodQ, (snap) => {
+        if(snap.empty) return;
+        const prods = [];
+        snap.forEach(d => prods.push({...d.data(), id: d.id}));
+        // Merge with local data: Firebase is source of truth
+        localStorage.setItem('waa_v4_prods', JSON.stringify(prods));
+        console.log(`🔄 Products synced: ${prods.length} products`);
+        // Re-render storefront if visible
+        const activePage = document.querySelector('.page.active');
+        if(activePage){
+          const pg = activePage.id;
+          if(pg === 'page-home') renderHome();
+          if(pg === 'page-shop') renderShop();
+          if(pg === 'page-product' && window._curProdId) openProd(window._curProdId, true);
+        }
+        // Re-render admin product table if open
+        const admProd = document.getElementById('as-products');
+        if(admProd && admProd.classList.contains('on')) renderAdmProd();
+        const dashSec = document.getElementById('as-dashboard');
+        if(dashSec && dashSec.classList.contains('on')) renderDashStats();
+      }, (err) => console.warn('Products listener error:', err));
+
+      // ── REAL-TIME CATEGORIES LISTENER ──
+      onSnapshot(collection(db, 'categories'), (snap) => {
+        if(snap.empty) return;
+        const cats = [];
+        snap.forEach(d => cats.push({...d.data(), id: d.id}));
+        localStorage.setItem('waa_v4_cats', JSON.stringify(cats));
+        console.log(`🔄 Categories synced: ${cats.length}`);
+        const catSec = document.getElementById('as-categories');
+        if(catSec && catSec.classList.contains('on')) renderCatT();
+      }, (err) => console.warn('Categories listener error:', err));
+
+      // ── REAL-TIME ORDERS LISTENER ──
+      const ordQ = query(collection(db, 'orders'), orderBy('dateISO','desc'));
+      onSnapshot(ordQ, (snap) => {
+        if(snap.empty) return;
+        const ords = [];
+        snap.forEach(d => ords.push({...d.data(), id: d.id}));
+        localStorage.setItem('waa_v4_orders', JSON.stringify(ords));
+        console.log(`🔄 Orders synced: ${ords.length}`);
+        const ordSec = document.getElementById('as-orders');
+        if(ordSec && ordSec.classList.contains('on')) renderOrders();
+        const dashSec2 = document.getElementById('as-dashboard');
+        if(dashSec2 && dashSec2.classList.contains('on')) renderDashStats();
+        // Update orders badge
+        const newOrds = ords.filter(o => o.status === 'Pending' || o.status === 'Paid');
+        const badge = document.getElementById('ord-badge-count');
+        if(badge) badge.textContent = newOrds.length || '';
+      }, (err) => console.warn('Orders listener error:', err));
+
+      // ── AUTH STATE ──
       onAuthStateChanged(auth, user => {
         if (user) {
           const n = user.displayName || user.email.split('@')[0];
@@ -49,8 +104,21 @@
           const avEl = document.getElementById('adm-av'); if(avEl) avEl.textContent = n[0].toUpperCase();
         }
       });
+
+      document.dispatchEvent(new Event('fbReady'));
+      // Show sync indicator briefly
+      setTimeout(() => {
+        const ind = document.getElementById('sync-indicator');
+        if(ind) { ind.style.display='flex'; setTimeout(()=>ind.style.display='none', 2500); }
+      }, 1000);
+
     } else {
-      console.log("ℹ️ Firebase not configured yet — using localStorage");
+      console.log("ℹ️ Firebase not configured — using localStorage only. Products won't sync across devices.");
+      // Show setup reminder in admin
+      document.addEventListener('DOMContentLoaded', () => {
+        const rem = document.getElementById('fb-setup-reminder');
+        if(rem) rem.style.display = 'flex';
+      });
     }
   } catch(e) {
     console.log("ℹ️ Firebase config error — using localStorage:", e.message);
@@ -601,6 +669,21 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
 }
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 .fa{animation:fadeUp .5s ease both}.fa2{animation:fadeUp .5s .12s ease both}.fa3{animation:fadeUp .5s .24s ease both}
+
+/* ── Sync indicator ── */
+#sync-indicator{position:fixed;top:80px;right:1.5rem;z-index:9990;background:linear-gradient(135deg,#4ecb71,#22c55e);color:#fff;padding:.5rem 1.1rem;border-radius:50px;font-size:.8rem;font-weight:700;display:none;align-items:center;gap:.5rem;box-shadow:0 4px 18px rgba(78,203,113,.4);animation:fadeUp .4s ease}
+#sync-indicator::before{content:'';width:8px;height:8px;background:#fff;border-radius:50%;animation:pulse 1s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+
+/* ── Firebase setup banner ── */
+#fb-setup-reminder{display:none;align-items:center;gap:1rem;background:rgba(252,211,77,.12);border:1.5px solid rgba(252,211,77,.4);border-radius:12px;padding:1rem 1.4rem;margin-bottom:1.2rem;flex-wrap:wrap}
+#fb-setup-reminder .fbr-ico{font-size:1.4rem}
+#fb-setup-reminder .fbr-txt{flex:1;font-size:.82rem;color:var(--at);font-weight:700;min-width:200px}
+#fb-setup-reminder .fbr-txt small{display:block;color:var(--am);font-weight:600;font-size:.75rem;margin-top:.15rem}
+#fb-setup-reminder .fbr-btn{background:var(--aa);color:#fff;border:none;padding:.45rem 1rem;border-radius:50px;font-family:var(--fn);font-size:.75rem;font-weight:800;cursor:pointer;white-space:nowrap}
+
+/* ── Offline badge on products ── */
+.offline-badge{display:inline-flex;align-items:center;gap:.3rem;background:rgba(252,211,77,.15);color:#fcd34d;border-radius:50px;font-size:.63rem;font-weight:800;padding:.15rem .6rem;margin-left:.4rem}
 </style>
 </head>
 <body>
@@ -612,6 +695,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
 
 <!-- TOAST -->
 <div class="toast" id="toast"><span class="t-ico" id="tIco">✨</span><span id="tMsg">Done!</span></div>
+<div id="sync-indicator">🔄 Products synced!</div>
 
 <!-- NAVBAR -->
 <nav id="siteNav">
@@ -1279,6 +1363,14 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
       <!-- DASHBOARD -->
       <div class="asec on" id="as-dashboard">
         <div class="adm-bc">WAA Kids Closet / <span>Dashboard</span></div>
+        <!-- Firebase setup reminder — hidden when Firebase is configured -->
+        <div id="fb-setup-reminder">
+          <div class="fbr-ico">🔥</div>
+          <div class="fbr-txt">Firebase not configured — products only visible on this device
+            <small>Add Firebase config to sync products across all devices in real-time</small>
+          </div>
+          <button class="fbr-btn" onclick="showFbGuide()">Setup Guide →</button>
+        </div>
         <div class="astats">
           <div class="asc"><div><div class="asc-lbl">Total Orders</div><div class="asc-val" id="d-ordCnt">0</div><div class="asc-ch" id="d-ordNote">loading…</div></div><div class="asc-ico" style="background:rgba(252,211,77,.12)">📦</div></div>
           <div class="asc"><div><div class="asc-lbl">Revenue (MTD)</div><div class="asc-val">₹4.2L</div><div class="asc-ch">↑ 22% vs last month</div></div><div class="asc-ico" style="background:rgba(78,203,113,.12)">💰</div></div>
@@ -1985,9 +2077,9 @@ function clrFilt(){
 }
 
 // ══ PRODUCT DETAIL ══
-function openProd(id){
+function openProd(id,silent=false){
   const p=gP().find(x=>x.id===id);if(!p)return;
-  curProd=p;curQty=1;
+  curProd=p;curQty=1;window._curProdId=id;
   document.getElementById('d-bc').textContent=p.name;
   document.getElementById('d-name').textContent=p.name;
   document.getElementById('d-desc').textContent=p.desc||'';
@@ -2296,8 +2388,53 @@ function copyCpn(code){
 }
 function doNL(e){e.preventDefault();toast('Subscribed! Welcome to WAA Kids Closet 💕','💕');e.target.reset()}
 
+// ══ FIREBASE SETUP GUIDE ══
+function showFbGuide(){
+  const steps=[
+    '1️⃣  Go to console.firebase.google.com',
+    '2️⃣  Create project → name it "waa-kids-closet"',
+    '3️⃣  Firestore Database → Create → Test mode',
+    '4️⃣  Storage → Get started → Test mode',
+    '5️⃣  Authentication → Email/Password → Enable',
+    '6️⃣  Add your admin user (email + password)',
+    '7️⃣  Project Settings → Your Apps → Web → Copy config',
+    '8️⃣  Open this HTML file → find firebaseConfig → paste your values',
+    '9️⃣  Save file → products now sync to ALL devices! ✅'
+  ];
+  const msg = steps.join('
+');
+  alert('🔥 FIREBASE SETUP GUIDE
+
+'+msg+'
+
+After setup: every product you add in admin will instantly appear on customer phones, laptops, and all devices!');
+}
+
+// ══ INITIAL FIREBASE FETCH (for devices without cached data) ══
+// When a customer opens the site fresh (no localStorage), fetch from Firestore once
+async function fetchFromFirebase(){
+  if(!window._fbReady) return;
+  const cached = localStorage.getItem('waa_v4_prods');
+  // If no local data yet, do a one-time fetch to bootstrap
+  if(!cached || JSON.parse(cached).length === 0){
+    try{
+      const {db,collection,getDocs,query,orderBy} = window._fb;
+      const snap = await getDocs(query(collection(db,'products'),orderBy('updatedAt','desc')));
+      if(!snap.empty){
+        const prods=[];
+        snap.forEach(d=>prods.push({...d.data(),id:d.id}));
+        localStorage.setItem('waa_v4_prods',JSON.stringify(prods));
+        renderHome();
+        console.log(`✅ Initial fetch: ${prods.length} products loaded`);
+      }
+    }catch(e){console.warn('Initial fetch error:',e)}
+  }
+}
+
 // ══ INIT ══
 renderHome();updBadge();
+// Fetch from Firebase on first load (handles fresh devices with no cache)
+document.addEventListener('fbReady', ()=>{ fetchFromFirebase(); });
 </script>
 </body>
 </html>
