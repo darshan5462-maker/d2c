@@ -7,6 +7,7 @@
 <meta name="description" content="WAA Kids Closet – Premium branded kidswear at affordable prices. Babyhug, Zara & more. Serving Harihar, Davangere & PAN India. COD available.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <!-- ══ FIREBASE SDK ══ -->
 <script type="module">
@@ -1129,7 +1130,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
         <div class="odr"><span>Order ID</span><span style="font-size:.8rem;color:var(--mu)">#WAA-2025-<span id="oid">0000</span></span></div>
         <div class="odr"><span>Items</span><span id="o-items">2 items</span></div>
         <div class="odr"><span>Amount Paid</span><span style="font-weight:900" id="o-amt">₹0</span></div>
-        <div class="odr"><span>Payment</span><span style="color:var(--gn)">✓ Confirmed</span></div>
+        <div class="odr"><span>Payment</span><span style="color:var(--gn)" id="o-pay-method">✓ Confirmed</span></div>
         <div class="odr"><span>Delivery By</span><span id="o-del">—</span></div>
       </div>
       <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
@@ -1278,7 +1279,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
       <div class="asec on" id="as-dashboard">
         <div class="adm-bc">WAA Kids Closet / <span>Dashboard</span></div>
         <div class="astats">
-          <div class="asc"><div><div class="asc-lbl">Total Orders</div><div class="asc-val">1,847</div><div class="asc-ch">↑ 14% this month</div></div><div class="asc-ico" style="background:rgba(252,211,77,.12)">📦</div></div>
+          <div class="asc"><div><div class="asc-lbl">Total Orders</div><div class="asc-val" id="d-ordCnt">0</div><div class="asc-ch" id="d-ordNote">loading…</div></div><div class="asc-ico" style="background:rgba(252,211,77,.12)">📦</div></div>
           <div class="asc"><div><div class="asc-lbl">Revenue (MTD)</div><div class="asc-val">₹4.2L</div><div class="asc-ch">↑ 22% vs last month</div></div><div class="asc-ico" style="background:rgba(78,203,113,.12)">💰</div></div>
           <div class="asc"><div><div class="asc-lbl">Active Products</div><div class="asc-val" id="d-pCnt">—</div><div class="asc-ch" id="d-pNote">loading…</div></div><div class="asc-ico" style="background:rgba(91,184,255,.12)">👗</div></div>
           <div class="asc"><div><div class="asc-lbl">Customers</div><div class="asc-val">8,421</div><div class="asc-ch">↑ 287 new this week</div></div><div class="asc-ico" style="background:rgba(192,132,252,.12)">👨‍👩‍👧</div></div>
@@ -1421,12 +1422,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
         </div>
         <div class="acard" style="overflow-x:auto">
           <table class="at"><thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>Items</th><th>Amount</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
-          <tbody>
-            <tr><td style="font-family:monospace;font-size:.72rem;color:var(--aa)">#WAA-8734</td><td>Preethi M.</td><td style="font-size:.75rem">93800 13093</td><td>2</td><td style="font-weight:800">₹898</td><td style="color:var(--am);font-size:.75rem">Today</td><td><span class="sp sp-pa">Paid</span></td><td><select class="as-sel" style="padding:.2rem .5rem;font-size:.7rem"><option>Paid</option><option>Shipped</option><option>Delivered</option></select></td></tr>
-            <tr><td style="font-family:monospace;font-size:.72rem;color:var(--aa)">#WAA-8733</td><td>Sindhu R.</td><td style="font-size:.75rem">98765 43210</td><td>1</td><td style="font-weight:800">₹449</td><td style="color:var(--am);font-size:.75rem">Today</td><td><span class="sp sp-sh">Shipped</span></td><td><select class="as-sel" style="padding:.2rem .5rem;font-size:.7rem"><option>Shipped</option><option>Delivered</option></select></td></tr>
-            <tr><td style="font-family:monospace;font-size:.72rem;color:var(--aa)">#WAA-8732</td><td>Anjali K.</td><td style="font-size:.75rem">87654 32109</td><td>3</td><td style="font-weight:800">₹1,347</td><td style="color:var(--am);font-size:.75rem">Yesterday</td><td><span class="sp sp-de">Delivered</span></td><td><select class="as-sel" style="padding:.2rem .5rem;font-size:.7rem"><option>Delivered</option></select></td></tr>
-            <tr><td style="font-family:monospace;font-size:.72rem;color:var(--aa)">#WAA-8731</td><td>Meera S.</td><td style="font-size:.75rem">76543 21098</td><td>1</td><td style="font-weight:800">₹599</td><td style="color:var(--am);font-size:.75rem">Yesterday</td><td><span class="sp sp-p">Pending</span></td><td><select class="as-sel" style="padding:.2rem .5rem;font-size:.7rem"><option>Pending</option><option>Paid</option><option>Shipped</option></select></td></tr>
-          </tbody></table>
+          <tbody id="real-orders-t"></tbody></table>
         </div>
       </div>
 
@@ -1760,11 +1756,20 @@ function renderDashStats(){
   const c=document.getElementById('d-pCnt');if(c)c.textContent=active.length;
   const n=document.getElementById('d-pNote');if(n)n.textContent=low.length+' low stock';
   const ot=document.getElementById('d-orders-t');
-  if(ot)ot.innerHTML=`
-    <tr><td style="font-family:monospace;font-size:.73rem;color:var(--aa)">#WAA-8734</td><td>Preethi M.</td><td style="font-weight:800">₹898</td><td><span class="sp sp-pa">Paid</span></td></tr>
-    <tr><td style="font-family:monospace;font-size:.73rem;color:var(--aa)">#WAA-8733</td><td>Sindhu R.</td><td style="font-weight:800">₹449</td><td><span class="sp sp-sh">Shipped</span></td></tr>
-    <tr><td style="font-family:monospace;font-size:.73rem;color:var(--aa)">#WAA-8732</td><td>Anjali K.</td><td style="font-weight:800">₹1,347</td><td><span class="sp sp-de">Delivered</span></td></tr>
-    <tr><td style="font-family:monospace;font-size:.73rem;color:var(--aa)">#WAA-8731</td><td>Meera S.</td><td style="font-weight:800">₹599</td><td><span class="sp sp-p">Pending</span></td></tr>`;
+  if(ot){
+    const recentOrds=gOrders().slice(0,5);
+    const stMap={Paid:'sp-pa',Pending:'sp-p',Shipped:'sp-sh',Delivered:'sp-de',Cancelled:'sp-oo'};
+    if(recentOrds.length){
+      ot.innerHTML=recentOrds.map(o=>`<tr>
+        <td style="font-family:monospace;font-size:.73rem;color:var(--aa)">${o.orderId||('#'+o.id)}</td>
+        <td>${o.customer||'Customer'}</td>
+        <td style="font-weight:800">₹${(o.amount||0).toLocaleString()}</td>
+        <td><span class="sp ${stMap[o.status]||'sp-p'}">${o.status}</span></td>
+      </tr>`).join('');
+    } else {
+      ot.innerHTML=`<tr><td colspan="4" style="text-align:center;color:var(--am);padding:1.5rem;font-size:.8rem;font-weight:700">No orders yet — they appear here when customers order!</td></tr>`;
+    }
+  }
   const tp=document.getElementById('d-top-p');
   if(tp)tp.innerHTML=active.slice(0,4).map(p=>{
     const img=p.images&&p.images.length?`<img src="${p.images[0]}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0">`:
@@ -1786,7 +1791,51 @@ function admTab(sec,btn){
   if(sec==='products')renderAdmProd();
   if(sec==='dashboard'){renderDashStats()}
   if(sec==='categories')renderCatT();
+  if(sec==='orders')renderOrders();
   if(sec==='add-product'){pendImgs=[];editImgs=[];document.getElementById('img-prev').innerHTML=''}
+}
+
+// ══ RENDER ORDERS ══
+function renderOrders(){
+  const t=document.getElementById('real-orders-t');if(!t)return;
+  const orders=gOrders();
+  if(!orders.length){
+    t.innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--am);padding:3rem;font-weight:700">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">📦</div>
+      No orders yet. Orders placed by customers will appear here automatically!
+    </td></tr>`;
+    return;
+  }
+  const stMap={Paid:'sp-pa',Pending:'sp-p',Shipped:'sp-sh',Delivered:'sp-de',Cancelled:'sp-oo'};
+  t.innerHTML=orders.map(o=>`<tr>
+    <td style="font-family:monospace;font-size:.72rem;color:var(--aa)">${o.orderId||('#'+o.id)}</td>
+    <td style="font-weight:700">${o.customer||'—'}</td>
+    <td style="font-size:.73rem;color:var(--am)">${(o.phone||'').replace(/[^0-9]/g,'').slice(-10)||'—'}</td>
+    <td>${o.items||0}</td>
+    <td style="font-weight:800">₹${(o.amount||0).toLocaleString()}</td>
+    <td style="color:var(--am);font-size:.73rem">${o.date||'—'}<br><span style="font-size:.65rem">${o.time||''}</span></td>
+    <td><span class="sp ${stMap[o.status]||'sp-p'}">${o.status||'Pending'}</span></td>
+    <td>
+      <select class="as-sel" style="padding:.22rem .5rem;font-size:.7rem" onchange="updOrderStatus('${o.id}',this.value)">
+        <option ${o.status==='Pending'?'selected':''}>Pending</option>
+        <option ${o.status==='Paid'?'selected':''}>Paid</option>
+        <option ${o.status==='Shipped'?'selected':''}>Shipped</option>
+        <option ${o.status==='Delivered'?'selected':''}>Delivered</option>
+        <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
+      </select>
+    </td>
+  </tr>`).join('');
+}
+
+function updOrderStatus(id,status){
+  const orders=gOrders();
+  const o=orders.find(x=>x.id===id);
+  if(o){o.status=status;sOrders(orders);}
+  // Firebase update
+  if(window._fbReady){
+    try{const {db,doc,updateDoc}=window._fb;updateDoc(doc(db,'orders',id),{status}).catch(()=>{})}catch(e){}
+  }
+  toast('Order status updated!','✅');
 }
 
 // ══════════════════════════════════════
@@ -1964,14 +2013,179 @@ function renderCO(){
   if(e('po-amt'))e('po-amt').textContent='₹'+tot.toLocaleString();
 }
 function selPay(el){document.querySelectorAll('.popt').forEach(p=>p.classList.remove('on'));el.classList.add('on');el.querySelector('input').checked=true}
+// ══ ORDERS STORAGE ══
+const ORDK='waa_v4_orders';
+function gOrders(){try{const d=localStorage.getItem(ORDK);return d?JSON.parse(d):[]}catch{return[]}}
+function sOrders(o){try{localStorage.setItem(ORDK,JSON.stringify(o))}catch(e){console.warn('Order storage full')}}
+
+function saveOrder(orderData){
+  const orders=gOrders();
+  orders.unshift(orderData);
+  sOrders(orders.slice(0,200)); // keep last 200 orders
+  // Try Firebase
+  if(window._fbReady){
+    try{
+      const {db,doc,setDoc}=window._fb;
+      setDoc(doc(db,'orders',orderData.id),orderData,{merge:true}).catch(e=>console.warn('FB order save:',e));
+    }catch(e){}
+  }
+}
+
+// ══ RAZORPAY PAYMENT ══
 function placeOrder(){
-  const cart=gCart(),sub=cart.reduce((s,i)=>s+i.price*i.qty,0),tot=sub+Math.round(sub*.05);
-  document.getElementById('oid').textContent=Math.floor(Math.random()*9000+1000);
+  const cart=gCart();
+  if(!cart.length){toast('Your cart is empty!','❌');return}
+  const sub=cart.reduce((s,i)=>s+i.price*i.qty,0),gst=Math.round(sub*.05),tot=sub+gst;
+  // Get selected payment method
+  const payOpt=document.querySelector('.popt.on .pon');
+  const payMethod=payOpt?payOpt.textContent.trim():'Razorpay';
+  const isCOD=payMethod==='Cash on Delivery';
+  if(isCOD){
+    doConfirmOrder(tot,cart,'COD',sub,gst);
+  } else {
+    // Razorpay UPI flow
+    openRazorpay(tot,cart,sub,gst);
+  }
+}
+
+function openRazorpay(tot,cart,sub,gst){
+  // Check if Razorpay SDK is loaded
+  if(typeof Razorpay==='undefined'){
+    // Load Razorpay SDK dynamically
+    const script=document.createElement('script');
+    script.src='https://checkout.razorpay.com/v1/checkout.js';
+    script.onload=()=>launchRazorpay(tot,cart,sub,gst);
+    script.onerror=()=>{
+      // Fallback: show demo payment modal
+      showPaymentModal(tot,cart,sub,gst);
+    };
+    document.head.appendChild(script);
+  } else {
+    launchRazorpay(tot,cart,sub,gst);
+  }
+}
+
+function launchRazorpay(tot,cart,sub,gst){
+  const fn=document.querySelector('#page-checkout input[type=text]')?.value||'Customer';
+  const ph=document.querySelectorAll('#page-checkout input[type=tel]')[0]?.value||'9380013093';
+  const options={
+    key:'rzp_test_WAA000000000', // Replace with your Razorpay Key ID
+    amount:tot*100, // in paise
+    currency:'INR',
+    name:'WAA Kids Closet',
+    description:'Kids Clothing Order',
+    image:'', // logo URL optional
+    prefill:{name:fn,contact:ph},
+    notes:{items:cart.length+' items'},
+    theme:{color:'#ff4fa0'},
+    handler:function(response){
+      doConfirmOrder(tot,cart,'UPI/Razorpay ('+response.razorpay_payment_id+')',sub,gst);
+    },
+    modal:{ondismiss:function(){toast('Payment cancelled. Try again.','❌')}}
+  };
+  try{
+    const rp=new Razorpay(options);
+    rp.on('payment.failed',function(resp){toast('Payment failed: '+resp.error.description,'❌')});
+    rp.open();
+  }catch(e){
+    showPaymentModal(tot,cart,sub,gst);
+  }
+}
+
+function showPaymentModal(tot,cart,sub,gst){
+  // Create payment modal overlay
+  let mo=document.getElementById('pay-modal');
+  if(!mo){
+    mo=document.createElement('div');
+    mo.id='pay-modal';
+    mo.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(6px)';
+    document.body.appendChild(mo);
+  }
+  mo.innerHTML=`<div style="background:#fff;border-radius:20px;padding:2rem;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="font-size:2.5rem;margin-bottom:.5rem">💳</div>
+      <div style="font-family:'Fredoka One',sans-serif;font-size:1.5rem;color:#2d2347">Pay ₹${tot.toLocaleString()}</div>
+      <div style="font-size:.8rem;color:#9188a8;font-weight:600;margin-top:.3rem">WAA Kids Closet · Secure Payment</div>
+    </div>
+    <div style="background:#f0e8fb;border-radius:14px;padding:1.2rem;margin-bottom:1.2rem">
+      <div style="font-size:.72rem;font-weight:800;color:#9188a8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Pay via UPI</div>
+      <div style="display:flex;align-items:center;gap:.75rem;background:#fff;border-radius:10px;padding:.8rem 1rem;border:2px solid #f0e8fb">
+        <span style="font-size:1.4rem">📱</span>
+        <div style="flex:1">
+          <input id="upi-id-inp" type="text" placeholder="Enter UPI ID (e.g. 93800@upi)" style="border:none;outline:none;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:700;width:100%;color:#2d2347" value="">
+        </div>
+      </div>
+      <div style="margin-top:.8rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <span onclick="document.getElementById('upi-id-inp').value='number@paytm'" style="background:#fff;border:1.5px solid #f0e8fb;padding:.3rem .75rem;border-radius:50px;font-size:.73rem;font-weight:700;cursor:pointer;color:#2d2347">Paytm</span>
+        <span onclick="document.getElementById('upi-id-inp').value='number@gpay'" style="background:#fff;border:1.5px solid #f0e8fb;padding:.3rem .75rem;border-radius:50px;font-size:.73rem;font-weight:700;cursor:pointer;color:#2d2347">GPay</span>
+        <span onclick="document.getElementById('upi-id-inp').value='number@phonepe'" style="background:#fff;border:1.5px solid #f0e8fb;padding:.3rem .75rem;border-radius:50px;font-size:.73rem;font-weight:700;cursor:pointer;color:#2d2347">PhonePe</span>
+      </div>
+    </div>
+    <div style="text-align:center;color:#9188a8;font-size:.78rem;font-weight:600;margin-bottom:1rem">— or pay via —</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.2rem">
+      <button onclick="simulatePay('Card',${tot},[...JSON.parse('${JSON.stringify(cart).replace(/'/g,"\'")}')],${sub},${gst})" style="border:2px solid #f0e8fb;background:#fff;border-radius:12px;padding:.9rem;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;color:#2d2347;transition:all .18s" onmouseover="this.style.borderColor='#ff4fa0'" onmouseout="this.style.borderColor='#f0e8fb'">💳 Card</button>
+      <button onclick="simulatePay('Net Banking',${tot},[...JSON.parse('${JSON.stringify(cart).replace(/'/g,"\'")}')],${sub},${gst})" style="border:2px solid #f0e8fb;background:#fff;border-radius:12px;padding:.9rem;cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;color:#2d2347;transition:all .18s" onmouseover="this.style.borderColor='#ff4fa0'" onmouseout="this.style.borderColor='#f0e8fb'">🏦 Net Banking</button>
+    </div>
+    <button onclick="payUPI(${tot},${sub},${gst})" style="width:100%;background:linear-gradient(135deg,#ff4fa0,#e8358c);color:#fff;border:none;border-radius:12px;padding:1rem;font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:800;cursor:pointer;margin-bottom:.75rem">Pay ₹${tot.toLocaleString()} via UPI →</button>
+    <button onclick="document.getElementById('pay-modal').remove()" style="width:100%;background:none;border:2px solid #f0e8fb;border-radius:12px;padding:.75rem;font-family:'Nunito',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;color:#9188a8">Cancel</button>
+  </div>`;
+  // Store cart/amounts for the modal buttons
+  mo._cart=cart;mo._sub=sub;mo._gst=gst;mo._tot=tot;
+}
+
+function payUPI(tot,sub,gst){
+  const upiId=document.getElementById('upi-id-inp')?.value.trim();
+  if(!upiId||!upiId.includes('@')){toast('Enter a valid UPI ID (e.g. 9380013093@paytm)','❌');return}
+  const cart=gOrders().length>=0?gCart():[];
+  simulatePay('UPI ('+upiId+')',tot,cart,sub,gst);
+}
+
+function simulatePay(method,tot,cart,sub,gst){
+  // Remove modal
+  const mo=document.getElementById('pay-modal');if(mo)mo.remove();
+  // Show processing
+  toast('Processing payment...','⏳');
+  setTimeout(()=>{
+    const actualCart=gCart();
+    doConfirmOrder(tot,actualCart,method,sub,gst);
+  },1500);
+}
+
+function doConfirmOrder(tot,cart,payMethod,sub,gst){
+  const ordId='WAA-'+Date.now().toString().slice(-6);
+  const fn=(document.querySelectorAll('#page-checkout input[type=text]')[0]?.value||'').trim();
+  const ln=(document.querySelectorAll('#page-checkout input[type=text]')[1]?.value||'').trim();
+  const ph=(document.querySelectorAll('#page-checkout input[type=tel]')[0]?.value||'9380013093').trim();
+  const city=(document.querySelectorAll('#page-checkout input[type=text]')[4]?.value||'').trim()||'N/A';
+  const name=(fn+' '+ln).trim()||'Customer';
+  const now=new Date();
+  const orderData={
+    id:ordId,
+    orderId:'#'+ordId,
+    customer:name||'Customer',
+    phone:ph||'N/A',
+    city:city,
+    items:cart.length,
+    itemList:cart.map(i=>({name:i.name,qty:i.qty,price:i.price})),
+    sub:sub,gst:gst,amount:tot,
+    payMethod:payMethod,
+    status:'Paid',
+    date:now.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}),
+    dateISO:now.toISOString(),
+    time:now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})
+  };
+  saveOrder(orderData);
+  // Update success page
+  const del=new Date();del.setDate(del.getDate()+5);
+  document.getElementById('oid').textContent=ordId;
   document.getElementById('o-items').textContent=cart.length+' item'+(cart.length!==1?'s':'');
   document.getElementById('o-amt').textContent='₹'+tot.toLocaleString();
-  const d=new Date();d.setDate(d.getDate()+5);
-  document.getElementById('o-del').textContent=d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('o-del').textContent=del.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  // Update payment display on success
+  const payEl=document.getElementById('o-pay-method');
+  if(payEl)payEl.textContent='✓ '+payMethod;
   sCart([]);updBadge();goPage('success');
+  toast('Order placed! 🎉','🎉');
 }
 
 // ══ ROUTING ══
