@@ -22,9 +22,9 @@
 // 5. Paste BOTH values below:
 // ══════════════════════════════════════════════════════════════
 window._SYNC = {
-  binId:  '',           // ← PASTE YOUR BIN ID HERE  e.g. "64abc123def456"
-  apiKey: '',           // ← PASTE YOUR API KEY HERE e.g. "yourkey123"
-  ready:  false,
+  binId:  '69d650b1aaba882197d7c3be',
+  apiKey: '$2a$10$Y.e.r9rQe750oDAMvf.tMud9st5n.whEK8089kpmoI/WusO665bMy',
+  ready:  true,
   lastSync: 0
 };
 // ══════════════════════════════════════════════════════════════
@@ -36,6 +36,11 @@ window._SYNC = {
 
   if (s.ready) {
     console.log('✅ Cloud sync ready — products will sync across all devices!');
+    // Hide setup reminder since already configured
+    document.addEventListener('DOMContentLoaded', function() {
+      var rem = document.getElementById('fb-setup-reminder');
+      if (rem) rem.style.display = 'none';
+    });
   } else {
     console.log('ℹ️ Cloud sync not configured — products saved locally only.');
     setTimeout(function() {
@@ -1904,7 +1909,7 @@ function launchRazorpay(tot, cart, sub, gst) {
   var fn = (inputs[0] && inputs[0].value) || 'Customer';
   var ph = (document.querySelectorAll('#page-checkout input[type=tel]')[0] && document.querySelectorAll('#page-checkout input[type=tel]')[0].value) || '9380013093';
   var opts = {
-    key: 'rzp_test_SUH83pbxKtbE58',
+    key: 'rzp_test_WAA000000000',
     amount: tot * 100,
     currency: 'INR',
     name: 'WAA Kids Closet',
@@ -2135,10 +2140,14 @@ function cloudPush() {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'X-Master-Key': s.apiKey
+      'X-Master-Key': s.apiKey,
+      'X-Bin-Private': 'false'
     },
     body: payload
-  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+  }).then(function(r) {
+    if (!r.ok) { console.warn('CloudPush failed:', r.status, r.statusText); }
+    return r.ok;
+  }).catch(function(e) { console.warn('CloudPush error:', e); return false; });
 }
 
 function cloudPull() {
@@ -2150,10 +2159,16 @@ function cloudPull() {
   if (now - s.lastSync < 10000) return Promise.resolve(false);
   s.lastSync = now;
   return fetch('https://api.jsonbin.io/v3/b/' + s.binId + '/latest', {
-    headers: { 'X-Master-Key': s.apiKey }
-  }).then(function(r) { return r.json(); })
-    .then(function(json) {
-      var data = json.record;
+    headers: {
+      'X-Master-Key': s.apiKey,
+      'X-Bin-Meta': 'false'
+    }
+  }).then(function(r) {
+    if (!r.ok) { console.warn('CloudPull failed:', r.status); return null; }
+    return r.json();
+  }).then(function(json) {
+      if (!json) return false;
+      var data = json.record || json;
       if (!data) return false;
       if (data.products && data.products.length > 0) {
         localStorage.setItem('waa_v5_prods', JSON.stringify(data.products));
@@ -2162,7 +2177,7 @@ function cloudPull() {
         localStorage.setItem('waa_v5_cats', JSON.stringify(data.categories));
       }
       return true;
-    }).catch(function() { return false; });
+    }).catch(function(e) { console.warn('CloudPull error:', e); return false; });
 }
 
 function fbUploadImg(file, prodId) {
@@ -2477,8 +2492,8 @@ function admTab(sec, btn) {
 
 // ══ ADMIN AUTH ══
 // ── ADMIN PASSWORD — change this to secure your admin panel ──
-var ADMIN_EMAIL = 'admin@waakids.in';  // change to your email
-var ADMIN_PASS  = 'waa@2025';          // change to your password
+var ADMIN_EMAIL = 'admin@waakidscloset.in';  // change to your email
+var ADMIN_PASS  = 'waakids@2026';          // change to your password
 
 function adminLogin() {
   var email = document.getElementById('adm-email').value.trim();
@@ -2613,8 +2628,9 @@ function applySyncCredentials() {
       }, 3000);
     } else {
       if (btn) { btn.textContent = 'Connect →'; btn.disabled = false; }
-      toast('Connection failed — check your Bin ID and API Key', '❌');
+      toast('Connection failed — make sure Bin ID is correct (no spaces)', '❌');
       window._SYNC.ready = false;
+      console.warn('Failed with binId:', binId.length, 'chars, apiKey:', apiKey.length, 'chars');
     }
   });
 }
