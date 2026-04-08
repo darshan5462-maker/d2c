@@ -27,6 +27,13 @@ window._SYNC = {
   ready:  true,
   lastSync: 0
 };
+
+// ══ IMAGE HOSTING — ImgBB (free, permanent, no login needed per upload) ══
+// Get your free API key in 1 minute:
+// 1. Go to imgbb.com → Sign up free
+// 2. Go to https://api.imgbb.com → click "Get API key"
+// 3. Paste your key below:
+window._IMGBB_KEY = 'YOUR_IMGBB_KEY_HERE';  // ← paste your key here
 // ══════════════════════════════════════════════════════════════
 
 (function() {
@@ -1319,6 +1326,28 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
               <div id="sync-status-msg" style="font-size:.78rem;font-weight:700;color:#4ecb71;display:none">✅ Connected! Products now sync to all devices.</div>
             </div>
 
+            <!-- ImgBB Image Hosting -->
+            <div style="margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid rgba(255,255,255,.07)">
+              <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.7rem;flex-wrap:wrap">
+                <span style="font-size:1.1rem">🖼️</span>
+                <div style="flex:1">
+                  <div style="font-weight:800;color:#5bb8ff;font-size:.88rem">Image Hosting — Sync images to all devices</div>
+                  <div style="font-size:.74rem;color:#7c6fa0;font-weight:600">Free · imgbb.com · No credit card needed</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+                <div style="flex:1;min-width:180px">
+                  <label style="display:block;font-size:.68rem;font-weight:800;color:#7c6fa0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">ImgBB API Key</label>
+                  <input id="imgbb-key-inp" type="text" placeholder="Paste your ImgBB API key…" style="width:100%;padding:.65rem .9rem;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.06);color:#ede9ff;font-size:.83rem;outline:none">
+                </div>
+                <button onclick="applyImgBBKey()" style="background:linear-gradient(135deg,#5bb8ff,#2563eb);color:#fff;border:none;padding:.65rem 1.2rem;border-radius:50px;font-weight:800;font-size:.82rem;cursor:pointer;white-space:nowrap">Save →</button>
+              </div>
+              <div style="font-size:.74rem;color:#7c6fa0;font-weight:600;margin-top:.5rem">
+                Get free key: <a href="https://imgbb.com" target="_blank" style="color:#5bb8ff">imgbb.com</a> → Sign up → <a href="https://api.imgbb.com" target="_blank" style="color:#5bb8ff">api.imgbb.com</a> → Get API key
+              </div>
+              <div id="imgbb-status" style="font-size:.78rem;font-weight:700;color:#4ecb71;display:none;margin-top:.4rem">✅ ImgBB connected! Images will now sync to all devices.</div>
+            </div>
+
             <!-- Expandable setup guide -->
             <div id="sync-setup-expanded" style="display:none;margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.07)">
               <div style="font-size:.8rem;color:#ede9ff;font-weight:700;margin-bottom:.8rem">How to get your free JSONBin credentials:</div>
@@ -1417,7 +1446,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
 
             <!-- IMAGE UPLOAD CARD -->
             <div class="acard">
-              <div class="acard-hd"><span class="acard-t">Product Images 📸</span><span class="acard-sub">Upload from your device — stored to Firebase Storage</span></div>
+              <div class="acard-hd"><span class="acard-t">Product Images 📸</span><span class="acard-sub" id="img-cloud-hint">Upload from your device</span></div>
               <div class="acard-bd">
                 <div class="upzone">
                   <input type="file" id="img-inp" multiple accept="image/*" onchange="handleImgSel(event)">
@@ -2099,6 +2128,36 @@ function clrImgPrev() {
   var s = document.getElementById('up-status'); if (s) s.textContent = '';
 }
 
+// ══ IMGBB IMAGE UPLOAD (free, permanent hosting) ══
+async function uploadToImgBB(file) {
+  var key = window._IMGBB_KEY;
+  if (!key || key === 'YOUR_IMGBB_KEY_HERE') return null;
+  try {
+    // First compress the image
+    var base64 = await compressImg(file, 1024, 0.85);
+    if (!base64) return null;
+    // Strip the data:image/jpeg;base64, prefix
+    var b64data = base64.split(',')[1];
+    var form = new FormData();
+    form.append('key', key);
+    form.append('image', b64data);
+    var resp = await fetch('https://api.imgbb.com/1/upload', {
+      method: 'POST',
+      body: form
+    });
+    var json = await resp.json();
+    if (json.success) {
+      console.log('ImgBB upload OK:', json.data.url);
+      return json.data.display_url || json.data.url;
+    }
+    console.warn('ImgBB upload failed:', json);
+    return null;
+  } catch(e) {
+    console.warn('ImgBB error:', e);
+    return null;
+  }
+}
+
 // ══ IMAGE COMPRESSION ══
 function compressImg(file, maxPx, quality) {
   maxPx = maxPx || 800; quality = quality || 0.75;
@@ -2131,8 +2190,23 @@ function cloudPush() {
   // Push ALL products+categories to JSONBin (all devices will get them)
   var s = window._SYNC;
   if (!s || !s.ready) return Promise.resolve(false);
+  // Strip large base64 images before pushing to JSONBin (100KB limit)
+  // Only URL-based images (from ImgBB) are synced — base64 stays local only
+  var prodsForCloud = gP().map(function(p) {
+    var imgs = (p.images || []).filter(function(img) {
+      return img && !img.startsWith('data:'); // keep only URLs, not base64
+    });
+    return Object.assign({}, p, {images: imgs});
+  });
+  var totalSize = JSON.stringify(prodsForCloud).length;
+  if (totalSize > 90000) {
+    // Still too big - trim descriptions
+    prodsForCloud = prodsForCloud.map(function(p) {
+      return Object.assign({}, p, {desc: (p.desc||'').substring(0, 100)});
+    });
+  }
   var payload = JSON.stringify({
-    products: gP(),
+    products: prodsForCloud,
     categories: gC(),
     updatedAt: new Date().toISOString()
   });
@@ -2217,10 +2291,30 @@ async function saveProd(isDraft) {
   var imageUrls = editImgs.slice();
 
   if (pendImgs.length) {
-    if (upStatus) upStatus.textContent = '📸 Compressing images…';
-    var compressed = await Promise.all(pendImgs.slice(0,6).map(function(f){return compressImg(f,800,0.75);}));
-    imageUrls = imageUrls.concat(compressed.filter(Boolean));
-    if (upStatus) upStatus.textContent = '';
+    var hasImgBB = window._IMGBB_KEY && window._IMGBB_KEY !== 'YOUR_IMGBB_KEY_HERE';
+    if (hasImgBB) {
+      // Upload to ImgBB — returns a permanent URL (works on ALL devices!)
+      if (upStatus) upStatus.textContent = '📤 Uploading images to cloud…';
+      var uploaded = await Promise.all(pendImgs.slice(0,6).map(function(f) {
+        return uploadToImgBB(f);
+      }));
+      var urls = uploaded.filter(Boolean);
+      if (urls.length > 0) {
+        imageUrls = imageUrls.concat(urls);
+        if (upStatus) upStatus.textContent = '✅ Images uploaded!';
+      } else {
+        // ImgBB failed — fallback to compressed base64
+        if (upStatus) upStatus.textContent = '📸 Compressing images locally…';
+        var compressed = await Promise.all(pendImgs.slice(0,6).map(function(f){return compressImg(f,600,0.65);}));
+        imageUrls = imageUrls.concat(compressed.filter(Boolean));
+      }
+    } else {
+      // No ImgBB key — compress and store base64 locally only
+      if (upStatus) upStatus.textContent = '📸 Compressing images…';
+      var compressed = await Promise.all(pendImgs.slice(0,6).map(function(f){return compressImg(f,600,0.65);}));
+      imageUrls = imageUrls.concat(compressed.filter(Boolean));
+      if (upStatus) upStatus.textContent = '⚠️ Images saved locally only (add ImgBB key to sync images)';
+    }
   }
 
   var data = {
@@ -2492,8 +2586,8 @@ function admTab(sec, btn) {
 
 // ══ ADMIN AUTH ══
 // ── ADMIN PASSWORD — change this to secure your admin panel ──
-var ADMIN_EMAIL = 'admin@waakidscloset.in';  // change to your email
-var ADMIN_PASS  = 'waakids@2026';          // change to your password
+var ADMIN_EMAIL = 'admin@waakids.in';  // change to your email
+var ADMIN_PASS  = 'waa@2025';          // change to your password
 
 function adminLogin() {
   var email = document.getElementById('adm-email').value.trim();
@@ -2594,6 +2688,28 @@ function checkSyncInputs() {
   btn.style.color = ready ? '#fff' : '#9b6fc4';
   btn.style.cursor = ready ? 'pointer' : 'not-allowed';
 }
+
+function applyImgBBKey() {
+  var key = (document.getElementById('imgbb-key-inp')||{}).value.trim();
+  if (!key || key.length < 10) { toast('Enter a valid ImgBB API key','❌'); return; }
+  window._IMGBB_KEY = key;
+  localStorage.setItem('waa_imgbb_key', key);
+  var st = document.getElementById('imgbb-status');
+  if (st) st.style.display = 'block';
+  toast('ImgBB key saved! Images will now upload to cloud 🎉','🖼️');
+}
+
+// Restore saved ImgBB key on load
+(function() {
+  var saved = localStorage.getItem('waa_imgbb_key');
+  if (saved) {
+    window._IMGBB_KEY = saved;
+    var inp = document.getElementById('imgbb-key-inp');
+    if (inp) inp.value = saved;
+    var st = document.getElementById('imgbb-status');
+    if (st) st.style.display = 'block';
+  }
+})();
 
 function applySyncCredentials() {
   var binId  = (document.getElementById('sync-bin-id')||{}).value.trim();
