@@ -10,17 +10,32 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <!-- ══ CLOUD SYNC — JSONBin.io (Free, works instantly, no complex setup) ══ -->
+<!-- ══ FIREBASE SDKs ══ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
 <script>
 // ══════════════════════════════════════════════════════════════
-// CLOUD SYNC SETUP — Makes products visible on ALL devices
-//
-// Takes 2 minutes to set up:
-// 1. Go to https://jsonbin.io  →  Sign up free
-// 2. Click "New Bin" → paste: {"products":[],"categories":[]}  → Create
-// 3. Copy the BIN ID (looks like: 64abc123...)
-// 4. Go to API Keys → Create key → Copy it
-// 5. Paste BOTH values below:
+// FIREBASE CONFIG — Paste your Firebase project config here
+// How to get it (5 min, free):
+// 1. Go to console.firebase.google.com
+// 2. Create project → name: waa-kids-closet
+// 3. Project Settings (gear icon) → Your Apps → Web → Register App
+// 4. Copy the firebaseConfig object below
 // ══════════════════════════════════════════════════════════════
+var firebaseConfig = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+// ══════════════════════════════════════════════════════════════
+
+// Keep JSONBin as fallback (already configured)
 window._SYNC = {
   binId:  '69d650b1aaba882197d7c3be',
   apiKey: '$2a$10$Y.e.r9rQe750oDAMvf.tMud9st5n.whEK8089kpmoI/WusO665bMy',
@@ -28,32 +43,96 @@ window._SYNC = {
   lastSync: 0
 };
 
-// ══ IMAGE HOSTING — ImgBB (free, permanent, no login needed per upload) ══
-// Get your free API key in 1 minute:
-// 1. Go to imgbb.com → Sign up free
-// 2. Go to https://api.imgbb.com → click "Get API key"
-// 3. Paste your key below:
-window._IMGBB_KEY = 'YOUR_IMGBB_KEY_HERE';  // ← paste your key here
-// ══════════════════════════════════════════════════════════════
+window._fbReady = false;
+window._fbDB    = null;
+window._fbST    = null;
+window._fbAU    = null;
 
 (function() {
-  var s = window._SYNC;
-  s.ready = !!(s.binId && s.apiKey && s.binId.length > 5 && s.apiKey.length > 5);
-  window._fbReady = false; // not using Firebase
+  // Check localStorage for dynamically saved config
+  try {
+    var saved = localStorage.getItem('waa_fb_config');
+    if (saved) {
+      var savedCfg = JSON.parse(saved);
+      if (savedCfg.apiKey && savedCfg.apiKey !== 'YOUR_API_KEY') {
+        firebaseConfig = savedCfg;
+        console.log('✅ Firebase config loaded from localStorage');
+      }
+    }
+  } catch(e) {}
+  var isConfigured = firebaseConfig.apiKey !== 'YOUR_API_KEY';
 
-  if (s.ready) {
-    console.log('✅ Cloud sync ready — products will sync across all devices!');
-    // Hide setup reminder since already configured
-    document.addEventListener('DOMContentLoaded', function() {
-      var rem = document.getElementById('fb-setup-reminder');
-      if (rem) rem.style.display = 'none';
-    });
+  if (isConfigured) {
+    try {
+      firebase.initializeApp(firebaseConfig);
+      window._fbDB   = firebase.firestore();
+      window._fbST   = firebase.storage();
+      window._fbAU   = firebase.auth();
+      window._fbReady = true;
+      console.log('✅ Firebase connected!');
+
+      // ── REAL-TIME PRODUCTS LISTENER ──
+      // Fires on ALL devices the moment admin saves a product
+      window._fbDB.collection('products')
+        .orderBy('updatedAt', 'desc')
+        .onSnapshot(function(snap) {
+          if (snap.empty) return;
+          var prods = [];
+          snap.forEach(function(d) { prods.push(Object.assign({}, d.data(), {id: d.id})); });
+          localStorage.setItem('waa_v5_prods', JSON.stringify(prods));
+          console.log('🔄 Products synced: ' + prods.length);
+          var pg = (document.querySelector('.page.active')||{}).id || '';
+          if (pg === 'page-home')  renderHome();
+          if (pg === 'page-shop')  renderShop();
+          var ap = document.getElementById('as-products');
+          if (ap && ap.classList.contains('on')) renderAdmProd();
+          var ad = document.getElementById('as-dashboard');
+          if (ad && ad.classList.contains('on')) renderDashStats();
+        }, function(e) { console.warn('Products listener:', e); });
+
+      // ── REAL-TIME ORDERS LISTENER ──
+      window._fbDB.collection('orders')
+        .orderBy('dateISO', 'desc')
+        .onSnapshot(function(snap) {
+          if (snap.empty) return;
+          var ords = [];
+          snap.forEach(function(d) { ords.push(Object.assign({}, d.data(), {id: d.id})); });
+          localStorage.setItem('waa_v5_orders', JSON.stringify(ords));
+          console.log('🔄 Orders synced: ' + ords.length);
+          var ao = document.getElementById('as-orders');
+          if (ao && ao.classList.contains('on')) renderOrders();
+          var ad2 = document.getElementById('as-dashboard');
+          if (ad2 && ad2.classList.contains('on')) renderDashStats();
+        }, function(e) { console.warn('Orders listener:', e); });
+
+      // ── REAL-TIME CATEGORIES LISTENER ──
+      window._fbDB.collection('categories')
+        .onSnapshot(function(snap) {
+          if (snap.empty) return;
+          var cats = [];
+          snap.forEach(function(d) { cats.push(Object.assign({}, d.data(), {id: d.id})); });
+          localStorage.setItem('waa_v5_cats', JSON.stringify(cats));
+          var ac = document.getElementById('as-categories');
+          if (ac && ac.classList.contains('on')) renderCatT();
+        }, function(e) { console.warn('Categories listener:', e); });
+
+      // Hide setup reminder
+      document.addEventListener('DOMContentLoaded', function() {
+        var rem = document.getElementById('fb-setup-reminder');
+        if (rem) rem.style.display = 'none';
+      });
+
+    } catch(e) {
+      console.warn('Firebase init failed:', e);
+      window._fbReady = false;
+    }
   } else {
-    console.log('ℹ️ Cloud sync not configured — products saved locally only.');
+    console.log('ℹ️ Firebase not configured — using JSONBin fallback');
+    // JSONBin fallback still active via cloudPush/cloudPull
     setTimeout(function() {
       var rem = document.getElementById('fb-setup-reminder');
       if (rem) rem.style.display = 'block';
-    }, 500);
+    }, 600);
   }
 })();
 </script>
@@ -1298,79 +1377,55 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
         <div class="adm-bc">WAA Kids Closet / <span>Dashboard</span></div>
         <!-- Firebase setup reminder — shown only when Firebase is NOT configured -->
         <div id="fb-setup-reminder" style="display:none">
-          <!-- Cloud Sync Setup Card -->
-          <div style="background:rgba(192,132,252,.08);border:2px solid rgba(192,132,252,.3);border-radius:16px;padding:1.5rem;margin-bottom:1.4rem">
+          <div style="background:rgba(255,152,0,.08);border:2px solid rgba(255,152,0,.3);border-radius:16px;padding:1.5rem;margin-bottom:1.4rem">
             <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem;flex-wrap:wrap">
-              <span style="font-size:1.5rem">☁️</span>
+              <span style="font-size:1.6rem">🔥</span>
               <div style="flex:1">
-                <div style="font-weight:800;color:#c084fc;font-size:.95rem">Enable Cloud Sync — Products Visible on All Devices</div>
-                <div style="font-size:.78rem;color:#7c6fa0;font-weight:600;margin-top:.2rem">Free · 2 minutes setup · No coding needed</div>
+                <div style="font-weight:800;color:#ffa030;font-size:.95rem">Connect Firebase — Real-time sync to all devices</div>
+                <div style="font-size:.78rem;color:#7c6fa0;font-weight:600;margin-top:.2rem">Free tier · No credit card · 5 min setup</div>
               </div>
-              <button onclick="document.getElementById('sync-setup-expanded').style.display=document.getElementById('sync-setup-expanded').style.display==='none'?'block':'none'" style="background:rgba(192,132,252,.15);color:#c084fc;border:1.5px solid rgba(192,132,252,.3);padding:.4rem 1rem;border-radius:50px;font-weight:800;font-size:.78rem;cursor:pointer">Setup Guide ▾</button>
+              <button onclick="showFbSetupGuide()" style="background:rgba(255,152,0,.2);color:#ffa030;border:1.5px solid rgba(255,152,0,.4);padding:.45rem 1rem;border-radius:50px;font-weight:800;font-size:.78rem;cursor:pointer">📋 Setup Guide</button>
             </div>
 
-            <!-- Quick entry — paste credentials directly here -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.8rem">
-              <div>
-                <label style="display:block;font-size:.68rem;font-weight:800;color:#7c6fa0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">JSONBin Bin ID</label>
-                <input id="sync-bin-id" type="text" placeholder="64abc123def456..." style="width:100%;padding:.65rem .9rem;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.06);color:#ede9ff;font-size:.83rem;outline:none" oninput="checkSyncInputs()">
-              </div>
-              <div>
-                <label style="display:block;font-size:.68rem;font-weight:800;color:#7c6fa0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">JSONBin API Key</label>
-                <input id="sync-api-key" type="password" placeholder="$2b$10$..." style="width:100%;padding:.65rem .9rem;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.06);color:#ede9ff;font-size:.83rem;outline:none" oninput="checkSyncInputs()">
-              </div>
+            <!-- Firebase config input -->
+            <div style="background:rgba(0,0,0,.2);border-radius:12px;padding:1rem;margin-bottom:.8rem">
+              <div style="font-size:.72rem;font-weight:800;color:#7c6fa0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Paste your Firebase Config below</div>
+              <textarea id="fb-config-inp" rows="8" placeholder='{
+  apiKey: "AIzaSy...",
+  authDomain: "your-app.firebaseapp.com",
+  projectId: "your-app",
+  storageBucket: "your-app.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123"
+}' style="width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:8px;color:#ede9ff;font-size:.75rem;font-family:monospace;padding:.7rem;outline:none;resize:vertical"></textarea>
             </div>
             <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
-              <button id="sync-connect-btn" onclick="applySyncCredentials()" disabled style="background:rgba(192,132,252,.3);color:#9b6fc4;border:none;padding:.6rem 1.4rem;border-radius:50px;font-weight:800;font-size:.82rem;cursor:not-allowed">Connect →</button>
-              <button onclick="showSyncGuide()" style="background:none;color:#7c6fa0;border:1.5px solid rgba(255,255,255,.08);padding:.55rem 1rem;border-radius:50px;font-weight:700;font-size:.78rem;cursor:pointer">📋 Step-by-step guide</button>
-              <div id="sync-status-msg" style="font-size:.78rem;font-weight:700;color:#4ecb71;display:none">✅ Connected! Products now sync to all devices.</div>
+              <button onclick="applyFirebaseConfig()" style="background:linear-gradient(135deg,#ffa030,#ff6000);color:#fff;border:none;padding:.6rem 1.4rem;border-radius:50px;font-weight:800;font-size:.82rem;cursor:pointer">🔥 Connect Firebase →</button>
+              <div id="fb-connect-msg" style="font-size:.78rem;font-weight:700;color:#4ecb71;display:none">✅ Firebase connected! Real-time sync active.</div>
             </div>
 
-            <!-- ImgBB Image Hosting -->
-            <div style="margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid rgba(255,255,255,.07)">
-              <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.7rem;flex-wrap:wrap">
-                <span style="font-size:1.1rem">🖼️</span>
-                <div style="flex:1">
-                  <div style="font-weight:800;color:#5bb8ff;font-size:.88rem">Image Hosting — Sync images to all devices</div>
-                  <div style="font-size:.74rem;color:#7c6fa0;font-weight:600">Free · imgbb.com · No credit card needed</div>
-                </div>
-              </div>
-              <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
-                <div style="flex:1;min-width:180px">
-                  <label style="display:block;font-size:.68rem;font-weight:800;color:#7c6fa0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem">ImgBB API Key</label>
-                  <input id="imgbb-key-inp" type="text" placeholder="Paste your ImgBB API key…" style="width:100%;padding:.65rem .9rem;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.06);color:#ede9ff;font-size:.83rem;outline:none">
-                </div>
-                <button onclick="applyImgBBKey()" style="background:linear-gradient(135deg,#5bb8ff,#2563eb);color:#fff;border:none;padding:.65rem 1.2rem;border-radius:50px;font-weight:800;font-size:.82rem;cursor:pointer;white-space:nowrap">Save →</button>
-              </div>
-              <div style="font-size:.74rem;color:#7c6fa0;font-weight:600;margin-top:.5rem">
-                Get free key: <a href="https://imgbb.com" target="_blank" style="color:#5bb8ff">imgbb.com</a> → Sign up → <a href="https://api.imgbb.com" target="_blank" style="color:#5bb8ff">api.imgbb.com</a> → Get API key
-              </div>
-              <div id="imgbb-status" style="font-size:.78rem;font-weight:700;color:#4ecb71;display:none;margin-top:.4rem">✅ ImgBB connected! Images will now sync to all devices.</div>
-            </div>
-
-            <!-- Expandable setup guide -->
-            <div id="sync-setup-expanded" style="display:none;margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.07)">
-              <div style="font-size:.8rem;color:#ede9ff;font-weight:700;margin-bottom:.8rem">How to get your free JSONBin credentials:</div>
-              <div style="display:flex;flex-direction:column;gap:.6rem">
+            <!-- Step by step guide -->
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.07)">
+              <div style="display:flex;flex-direction:column;gap:.5rem">
                 <div style="display:flex;gap:.75rem;align-items:flex-start">
-                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">1</div>
-                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Go to <a href="https://jsonbin.io" target="_blank" style="color:#c084fc">jsonbin.io</a> → Sign up free (any email)</div>
+                  <div style="background:#ffa030;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-top:.1rem">1</div>
+                  <div style="font-size:.76rem;color:#7c6fa0;font-weight:600">Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#ffa030">console.firebase.google.com</a> → Create project → name it <strong style="color:#ede9ff">waa-kids-closet</strong></div>
                 </div>
                 <div style="display:flex;gap:.75rem;align-items:flex-start">
-                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">2</div>
-                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Click <strong style="color:#ede9ff">New Bin</strong> → paste <code style="background:rgba(255,255,255,.08);padding:.1rem .4rem;border-radius:4px;color:#c084fc">{"products":[],"categories":[]}</code> → click Create</div>
+                  <div style="background:#ffa030;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-top:.1rem">2</div>
+                  <div style="font-size:.76rem;color:#7c6fa0;font-weight:600"><strong style="color:#ede9ff">Firestore Database</strong> → Create database → Start in test mode</div>
                 </div>
                 <div style="display:flex;gap:.75rem;align-items:flex-start">
-                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">3</div>
-                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Copy the <strong style="color:#ede9ff">BIN ID</strong> from the URL (e.g. 64abc123...)</div>
+                  <div style="background:#ffa030;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-top:.1rem">3</div>
+                  <div style="font-size:.76rem;color:#7c6fa0;font-weight:600"><strong style="color:#ede9ff">Storage</strong> → Get started → Start in test mode</div>
                 </div>
                 <div style="display:flex;gap:.75rem;align-items:flex-start">
-                  <div style="background:#c084fc;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">4</div>
-                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Click <strong style="color:#ede9ff">API Keys</strong> (top menu) → Create Key → copy the key</div>
+                  <div style="background:#ffa030;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-top:.1rem">4</div>
+                  <div style="font-size:.76rem;color:#7c6fa0;font-weight:600"><strong style="color:#ede9ff">Authentication</strong> → Get started → Email/Password → Enable → Add your admin email + password</div>
                 </div>
                 <div style="display:flex;gap:.75rem;align-items:flex-start">
-                  <div style="background:#4ecb71;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;flex-shrink:0;margin-top:.1rem">5</div>
-                  <div style="font-size:.78rem;color:#7c6fa0;font-weight:600">Paste both above and click <strong style="color:#4ecb71">Connect</strong> — products sync to all devices instantly! ✅</div>
+                  <div style="background:#ffa030;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-top:.1rem">5</div>
+                  <div style="font-size:.76rem;color:#7c6fa0;font-weight:600">Project Settings (⚙️) → Your Apps → Web → Register App → Copy the <strong style="color:#ffa030">firebaseConfig</strong> object → Paste above</div>
                 </div>
               </div>
             </div>
@@ -1903,6 +1958,8 @@ function saveOrder(orderData) {
   var orders = gOrders();
   orders.unshift(orderData);
   sOrders(orders.slice(0,200));
+  // Save to Firebase (all devices see new orders instantly)
+  fbSaveOrder(orderData);
 }
 
 // ══ PAYMENT ══
@@ -2128,36 +2185,6 @@ function clrImgPrev() {
   var s = document.getElementById('up-status'); if (s) s.textContent = '';
 }
 
-// ══ IMGBB IMAGE UPLOAD (free, permanent hosting) ══
-async function uploadToImgBB(file) {
-  var key = window._IMGBB_KEY;
-  if (!key || key === 'YOUR_IMGBB_KEY_HERE') return null;
-  try {
-    // First compress the image
-    var base64 = await compressImg(file, 1024, 0.85);
-    if (!base64) return null;
-    // Strip the data:image/jpeg;base64, prefix
-    var b64data = base64.split(',')[1];
-    var form = new FormData();
-    form.append('key', key);
-    form.append('image', b64data);
-    var resp = await fetch('https://api.imgbb.com/1/upload', {
-      method: 'POST',
-      body: form
-    });
-    var json = await resp.json();
-    if (json.success) {
-      console.log('ImgBB upload OK:', json.data.url);
-      return json.data.display_url || json.data.url;
-    }
-    console.warn('ImgBB upload failed:', json);
-    return null;
-  } catch(e) {
-    console.warn('ImgBB error:', e);
-    return null;
-  }
-}
-
 // ══ IMAGE COMPRESSION ══
 function compressImg(file, maxPx, quality) {
   maxPx = maxPx || 800; quality = quality || 0.75;
@@ -2185,88 +2212,97 @@ function compressImg(file, maxPx, quality) {
 }
 
 // ══ FIREBASE UPLOAD ══
-// ══ JSONBIN CLOUD SYNC HELPERS ══
+// ══ FIREBASE HELPERS ══
+
+// Upload image to Firebase Storage → returns download URL
+function fbUploadImg(file, prodId) {
+  if (!window._fbReady || !window._fbST) return Promise.resolve(null);
+  try {
+    var ref = window._fbST.ref('products/' + prodId + '/' + Date.now() + '_' + file.name);
+    return ref.put(file).then(function() {
+      return ref.getDownloadURL();
+    }).catch(function(e) { console.warn('Storage upload:', e); return null; });
+  } catch(e) { return Promise.resolve(null); }
+}
+
+// Save product to Firestore
+function fbSaveProd(data) {
+  if (!window._fbReady || !window._fbDB) return Promise.resolve(null);
+  try {
+    return window._fbDB.collection('products').doc(data.id)
+      .set(data, {merge: true})
+      .then(function() { return data.id; })
+      .catch(function(e) { console.warn('Firestore save:', e); return null; });
+  } catch(e) { return Promise.resolve(null); }
+}
+
+// Delete product from Firestore
+function fbDelProd(id) {
+  if (!window._fbReady || !window._fbDB) return Promise.resolve();
+  return window._fbDB.collection('products').doc(id).delete().catch(function(){});
+}
+
+// Save order to Firestore
+function fbSaveOrder(data) {
+  if (!window._fbReady || !window._fbDB) return Promise.resolve();
+  return window._fbDB.collection('orders').doc(data.id)
+    .set(data, {merge: true}).catch(function(){});
+}
+
+// Update order status in Firestore
+function fbUpdateOrderStatus(id, status) {
+  if (!window._fbReady || !window._fbDB) return Promise.resolve();
+  return window._fbDB.collection('orders').doc(id)
+    .update({status: status}).catch(function(){});
+}
+
+// Save category to Firestore
+function fbSaveCat(data) {
+  if (!window._fbReady || !window._fbDB) return Promise.resolve();
+  return window._fbDB.collection('categories').doc(data.id)
+    .set(data, {merge: true}).catch(function(){});
+}
+
+// Delete category from Firestore
+function fbDelCat(id) {
+  if (!window._fbReady || !window._fbDB) return Promise.resolve();
+  return window._fbDB.collection('categories').doc(id).delete().catch(function(){});
+}
+
+// JSONBin fallback cloudPush (used when Firebase not configured)
 function cloudPush() {
-  // Push ALL products+categories to JSONBin (all devices will get them)
+  if (window._fbReady) return Promise.resolve(true); // Firebase handles it
   var s = window._SYNC;
   if (!s || !s.ready) return Promise.resolve(false);
-  // Strip large base64 images before pushing to JSONBin (100KB limit)
-  // Only URL-based images (from ImgBB) are synced — base64 stays local only
   var prodsForCloud = gP().map(function(p) {
-    var imgs = (p.images || []).filter(function(img) {
-      return img && !img.startsWith('data:'); // keep only URLs, not base64
-    });
+    var imgs = (p.images||[]).filter(function(img){ return img && !img.startsWith('data:'); });
     return Object.assign({}, p, {images: imgs});
   });
-  var totalSize = JSON.stringify(prodsForCloud).length;
-  if (totalSize > 90000) {
-    // Still too big - trim descriptions
-    prodsForCloud = prodsForCloud.map(function(p) {
-      return Object.assign({}, p, {desc: (p.desc||'').substring(0, 100)});
-    });
-  }
-  var payload = JSON.stringify({
-    products: prodsForCloud,
-    categories: gC(),
-    updatedAt: new Date().toISOString()
-  });
+  var payload = JSON.stringify({products: prodsForCloud, categories: gC(), updatedAt: new Date().toISOString()});
   return fetch('https://api.jsonbin.io/v3/b/' + s.binId, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Master-Key': s.apiKey,
-      'X-Bin-Private': 'false'
-    },
+    headers: {'Content-Type':'application/json','X-Master-Key': s.apiKey},
     body: payload
-  }).then(function(r) {
-    if (!r.ok) { console.warn('CloudPush failed:', r.status, r.statusText); }
-    return r.ok;
-  }).catch(function(e) { console.warn('CloudPush error:', e); return false; });
+  }).then(function(r){ return r.ok; }).catch(function(){ return false; });
 }
 
 function cloudPull() {
-  // Pull latest products+categories from JSONBin (sync from other devices)
+  if (window._fbReady) return Promise.resolve(true); // Firebase handles it via listeners
   var s = window._SYNC;
   if (!s || !s.ready) return Promise.resolve(false);
-  // Throttle: don't pull more than once per 10 seconds
   var now = Date.now();
   if (now - s.lastSync < 10000) return Promise.resolve(false);
   s.lastSync = now;
   return fetch('https://api.jsonbin.io/v3/b/' + s.binId + '/latest', {
-    headers: {
-      'X-Master-Key': s.apiKey,
-      'X-Bin-Meta': 'false'
-    }
-  }).then(function(r) {
-    if (!r.ok) { console.warn('CloudPull failed:', r.status); return null; }
-    return r.json();
-  }).then(function(json) {
-      if (!json) return false;
+    headers: {'X-Master-Key': s.apiKey, 'X-Bin-Meta': 'false'}
+  }).then(function(r){ return r.json(); })
+    .then(function(json) {
       var data = json.record || json;
       if (!data) return false;
-      if (data.products && data.products.length > 0) {
-        localStorage.setItem('waa_v5_prods', JSON.stringify(data.products));
-      }
-      if (data.categories && data.categories.length > 0) {
-        localStorage.setItem('waa_v5_cats', JSON.stringify(data.categories));
-      }
+      if (data.products && data.products.length > 0) localStorage.setItem('waa_v5_prods', JSON.stringify(data.products));
+      if (data.categories && data.categories.length > 0) localStorage.setItem('waa_v5_cats', JSON.stringify(data.categories));
       return true;
-    }).catch(function(e) { console.warn('CloudPull error:', e); return false; });
-}
-
-function fbUploadImg(file, prodId) {
-  // No image hosting in JSONBin mode — use base64 (already handled by compressImg)
-  return Promise.resolve(null);
-}
-
-function fbSaveProd(data) {
-  // Stub — actual save happens via cloudPush after saveProd
-  return Promise.resolve(data.id);
-}
-
-function fbUploadAndSync(data, files, prodId) {
-  // No separate upload needed — images are already base64 compressed
-  return Promise.resolve([]);
+    }).catch(function(){ return false; });
 }
 
 // ══ SAVE PRODUCT ══
@@ -2291,29 +2327,28 @@ async function saveProd(isDraft) {
   var imageUrls = editImgs.slice();
 
   if (pendImgs.length) {
-    var hasImgBB = window._IMGBB_KEY && window._IMGBB_KEY !== 'YOUR_IMGBB_KEY_HERE';
-    if (hasImgBB) {
-      // Upload to ImgBB — returns a permanent URL (works on ALL devices!)
-      if (upStatus) upStatus.textContent = '📤 Uploading images to cloud…';
+    if (window._fbReady && window._fbST) {
+      // ── Firebase Storage upload (permanent URLs, works on all devices) ──
+      if (upStatus) upStatus.textContent = '📤 Uploading images to Firebase…';
       var uploaded = await Promise.all(pendImgs.slice(0,6).map(function(f) {
-        return uploadToImgBB(f);
+        return fbUploadImg(f, prodId);
       }));
       var urls = uploaded.filter(Boolean);
       if (urls.length > 0) {
         imageUrls = imageUrls.concat(urls);
-        if (upStatus) upStatus.textContent = '✅ Images uploaded!';
+        if (upStatus) upStatus.textContent = '✅ Images uploaded to Firebase!';
       } else {
-        // ImgBB failed — fallback to compressed base64
+        // Storage failed — compress as base64 fallback
         if (upStatus) upStatus.textContent = '📸 Compressing images locally…';
         var compressed = await Promise.all(pendImgs.slice(0,6).map(function(f){return compressImg(f,600,0.65);}));
         imageUrls = imageUrls.concat(compressed.filter(Boolean));
       }
     } else {
-      // No ImgBB key — compress and store base64 locally only
+      // No Firebase — compress and store base64 locally
       if (upStatus) upStatus.textContent = '📸 Compressing images…';
       var compressed = await Promise.all(pendImgs.slice(0,6).map(function(f){return compressImg(f,600,0.65);}));
       imageUrls = imageUrls.concat(compressed.filter(Boolean));
-      if (upStatus) upStatus.textContent = '⚠️ Images saved locally only (add ImgBB key to sync images)';
+      if (upStatus) upStatus.textContent = '⚠️ Images saved locally only — add Firebase to sync images';
     }
   }
 
@@ -2349,11 +2384,19 @@ async function saveProd(isDraft) {
   renderAdmProd();
   if (data.status === 'Active') renderHome();
 
-  // Push to cloud so ALL devices see the update
-  if (window._SYNC && window._SYNC.ready && upStatus) {
-    upStatus.textContent = '☁️ Syncing to all devices…';
+  // Save to Firebase Firestore (real-time — all devices update instantly)
+  if (window._fbReady) {
+    fbSaveProd(data).then(function(id) {
+      if (id && upStatus) {
+        upStatus.textContent = '✅ Saved to Firebase — all devices updated!';
+        setTimeout(function(){ if(upStatus) upStatus.textContent=''; }, 3000);
+      }
+    });
+  } else if (window._SYNC && window._SYNC.ready) {
+    // JSONBin fallback
+    if (upStatus) upStatus.textContent = '☁️ Syncing via JSONBin…';
     cloudPush().then(function(ok) {
-      if (upStatus) upStatus.textContent = ok ? '✅ Synced! All devices updated' : '✅ Saved locally';
+      if (upStatus) upStatus.textContent = ok ? '✅ Synced via JSONBin' : '✅ Saved locally';
       setTimeout(function(){ if(upStatus) upStatus.textContent=''; }, 3000);
     });
   }
@@ -2422,9 +2465,10 @@ async function delProd(id) {
   sP(gP().filter(function(p){return p.id!==id;}));
   renderAdmProd(); renderDashStats(); renderHome();
   toast('Product deleted','🗑️');
-  // Sync deletion to all devices
-  if (window._SYNC && window._SYNC.ready) {
-    cloudPush().then(function(ok){ if(ok) console.log('Deletion synced to cloud'); });
+  if (window._fbReady) {
+    fbDelProd(id);
+  } else if (window._SYNC && window._SYNC.ready) {
+    cloudPush();
   }
 }
 
@@ -2442,13 +2486,16 @@ async function saveCat() {
   cats.push(nc); sC(cats);
   ['c-name','c-slug','c-emoji','c-desc'].forEach(function(i){var e=document.getElementById(i);if(e)e.value='';});
   renderCatT(); toast('Category added! 🏷️');
-  if (window._SYNC && window._SYNC.ready) cloudPush();
+  if (window._fbReady) { fbSaveCat(nc); }
+  else if (window._SYNC && window._SYNC.ready) { cloudPush(); }
 }
 
 async function delCat(id) {
   if(!confirm('Delete this category?')) return;
   sC(gC().filter(function(c){return c.id!==id;}));
   renderCatT(); toast('Category deleted','🗑️');
+  if (window._fbReady) { fbDelCat(id); }
+  else if (window._SYNC && window._SYNC.ready) { cloudPush(); }
 }
 
 function renderCatT() {
@@ -2567,6 +2614,7 @@ function updOrderStatus(id, status) {
   var orders = gOrders();
   var o = orders.find(function(x){return x.id===id;});
   if(o){ o.status=status; sOrders(orders); }
+  fbUpdateOrderStatus(id, status);
   toast('Order status updated!','✅');
 }
 
@@ -2589,21 +2637,41 @@ function admTab(sec, btn) {
 var ADMIN_EMAIL = 'admin@waakids.in';  // change to your email
 var ADMIN_PASS  = 'waa@2025';          // change to your password
 
-function adminLogin() {
+async function adminLogin() {
   var email = document.getElementById('adm-email').value.trim();
   var pwd   = document.getElementById('adm-pwd').value;
   var err   = document.getElementById('adm-err');
   err.classList.remove('show');
-  if (email === ADMIN_EMAIL && pwd === ADMIN_PASS) {
-    var uEl = document.getElementById('adm-uname'); if(uEl) uEl.textContent = 'WAA Admin';
-    var avEl = document.getElementById('adm-av');   if(avEl) avEl.textContent = 'W';
-    goPage('admin');
+  if (window._fbReady && window._fbAU) {
+    // Firebase Auth login
+    try {
+      var cred = await window._fbAU.signInWithEmailAndPassword(email, pwd);
+      var name = cred.user.displayName || cred.user.email.split('@')[0];
+      var uEl = document.getElementById('adm-uname'); if(uEl) uEl.textContent = name;
+      var avEl = document.getElementById('adm-av');   if(avEl) avEl.textContent = name[0].toUpperCase();
+      goPage('admin');
+    } catch(e) {
+      console.warn('Firebase login failed:', e.code);
+      err.classList.add('show');
+    }
   } else {
-    err.classList.add('show');
+    // Local fallback login
+    if (email === ADMIN_EMAIL && pwd === ADMIN_PASS) {
+      var uEl = document.getElementById('adm-uname'); if(uEl) uEl.textContent = 'WAA Admin';
+      var avEl = document.getElementById('adm-av');   if(avEl) avEl.textContent = 'W';
+      goPage('admin');
+    } else {
+      err.classList.add('show');
+    }
   }
 }
 
-function adminLogout() { goPage('admin-login'); }
+async function adminLogout() {
+  if (window._fbReady && window._fbAU) {
+    try { await window._fbAU.signOut(); } catch(e) {}
+  }
+  goPage('admin-login');
+}
 
 // ══ MISC ══
 function copyCpn(code) {
@@ -2675,6 +2743,61 @@ function startAutoSync() {
 
 // ══ INIT ══
 function doEditCatMsg(){toast("To edit: delete this category and add a new one with the updated name");}
+
+// ══ FIREBASE DYNAMIC CONFIG (paste config in admin, no file edit needed) ══
+function applyFirebaseConfig() {
+  var raw = (document.getElementById('fb-config-inp')||{}).value.trim();
+  if (!raw) { toast('Paste your Firebase config first','❌'); return; }
+  try {
+    // Extract values from the config object text
+    function extract(key) {
+      var m = raw.match(new RegExp(key + '["\'\s]*:["\'\s]*([^"\',}\n]+)'));
+      return m ? m[1].trim().replace(/["\']/g,'') : '';
+    }
+    var cfg = {
+      apiKey:            extract('apiKey'),
+      authDomain:        extract('authDomain'),
+      projectId:         extract('projectId'),
+      storageBucket:     extract('storageBucket'),
+      messagingSenderId: extract('messagingSenderId'),
+      appId:             extract('appId')
+    };
+    if (!cfg.apiKey || !cfg.projectId) {
+      toast('Config looks incomplete — check you copied all fields','❌'); return;
+    }
+    // Save to localStorage
+    localStorage.setItem('waa_fb_config', JSON.stringify(cfg));
+    toast('Applying Firebase config… reloading in 2 seconds 🔥','🔥');
+    setTimeout(function() { location.reload(); }, 2000);
+  } catch(e) {
+    toast('Could not read config — paste the full firebaseConfig object','❌');
+    console.warn('Config parse error:', e);
+  }
+}
+
+function showFbSetupGuide() {
+  var steps = [
+    'FIREBASE SETUP GUIDE (5 minutes, free)',
+    '======================================',
+    '',
+    '1. Go to: console.firebase.google.com',
+    '2. Click "Add project" → name: waa-kids-closet',
+    '3. Firestore Database → Create → Test mode',
+    '4. Storage → Get started → Test mode',
+    '5. Authentication → Email/Password → Enable',
+    '6. Add your admin user (email + password)',
+    '7. Project Settings (gear) → Your Apps → Web',
+    '8. Register App → copy firebaseConfig',
+    '9. Paste it in the box above → Connect Firebase',
+    '',
+    'After setup:',
+    '- Products sync to ALL devices in real-time',
+    '- Images stored permanently in Firebase Storage',
+    '- Orders appear in admin instantly',
+    '- Admin login secured with Firebase Auth'
+  ];
+  alert(steps.join('\n'));
+}
 
 // ══ SYNC CREDENTIAL UI ══
 function checkSyncInputs() {
