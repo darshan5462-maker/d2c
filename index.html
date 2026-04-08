@@ -9,136 +9,43 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka+One&display=swap" rel="stylesheet">
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-<!-- ══ FIREBASE SDK ══ -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+<!-- ══ CLOUD SYNC — JSONBin.io (Free, works instantly, no complex setup) ══ -->
+<script>
+// ══════════════════════════════════════════════════════════════
+// CLOUD SYNC SETUP — Makes products visible on ALL devices
+//
+// Takes 2 minutes to set up:
+// 1. Go to https://jsonbin.io  →  Sign up free
+// 2. Click "New Bin" → paste: {"products":[],"categories":[]}  → Create
+// 3. Copy the BIN ID (looks like: 64abc123...)
+// 4. Go to API Keys → Create key → Copy it
+// 5. Paste BOTH values below:
+// ══════════════════════════════════════════════════════════════
+window._SYNC = {
+  binId:  '69d6461336566621a88e9c7f ',           // ← PASTE YOUR BIN ID HERE  e.g. "64abc123def456"
+  apiKey: '$2a$10$Y.e.r9rQe750oDAMvf.tMud9st5n.whEK8089kpmoI/WusO665bMy',           // ← PASTE YOUR API KEY HERE e.g. "yourkey123"
+  ready:  false,
+  lastSync: 0
+};
+// ══════════════════════════════════════════════════════════════
 
-  // ════════════════════════════════════════════════════════════
-  // 🔥 STEP 1: PASTE YOUR FIREBASE CONFIG HERE
-  // 
-  // HOW TO GET IT:
-  //   1. Go to console.firebase.google.com
-  //   2. Create project "waa-kids-closet"
-  //   3. Enable: Firestore, Storage, Authentication (Email/Password)
-  //   4. Project Settings → Your Apps → Add Web App → Copy config
-  //   5. Paste below replacing all YOUR_* values
-  //
-  // WITHOUT THIS: products only show on ONE device (your phone/laptop)
-  // WITH THIS: products sync to ALL devices in real-time ✅
-  // ════════════════════════════════════════════════════════════
-  const firebaseConfig = {
-    apiKey: "AIzaSyACo64L7DQnwuSQUK45crk5NjoMM41voy0",
-    authDomain: "waa-kids-closet.firebaseapp.com",
-    projectId: "waa-kids-closet",
-    storageBucket: "waa-kids-closet.firebasestorage.app",
-    messagingSenderId: "6556252425",
-    appId: "1:6556252425:web:7c1b85594e40fafa78fbd8",
-    measurementId: "G-MPVN29L5LK"
-  };
-  // ════════════════════════════════════════════════════════════
+(function() {
+  var s = window._SYNC;
+  s.ready = !!(s.binId && s.apiKey && s.binId.length > 5 && s.apiKey.length > 5);
+  window._fbReady = false; // not using Firebase
 
-  try {
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-    const storage = getStorage(app);
-    const auth = getAuth(app);
-    window._fb = { db, storage, auth, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, setDoc, ref, uploadBytes, getDownloadURL, deleteObject, signInWithEmailAndPassword, signOut, onAuthStateChanged };
-    window._fbReady = (firebaseConfig.apiKey !== "YOUR_API_KEY");
-
-    if (window._fbReady) {
-      console.log("✅ Firebase connected! Starting real-time sync…");
-
-      // ── REAL-TIME PRODUCTS LISTENER ──
-      // Fires instantly on ANY device when admin adds/edits/deletes a product
-      const prodQ = query(collection(db, 'products'), orderBy('updatedAt','desc'));
-      onSnapshot(prodQ, (snap) => {
-        if(snap.empty) return;
-        const prods = [];
-        snap.forEach(d => prods.push({...d.data(), id: d.id}));
-        // Merge with local data: Firebase is source of truth
-        localStorage.setItem('waa_v4_prods', JSON.stringify(prods));
-        console.log(`🔄 Products synced: ${prods.length} products`);
-        // Re-render storefront if visible
-        const activePage = document.querySelector('.page.active');
-        if(activePage){
-          const pg = activePage.id;
-          if(pg === 'page-home') renderHome();
-          if(pg === 'page-shop') renderShop();
-          if(pg === 'page-product' && window._curProdId) openProd(window._curProdId, true);
-        }
-        // Re-render admin product table if open
-        const admProd = document.getElementById('as-products');
-        if(admProd && admProd.classList.contains('on')) renderAdmProd();
-        const dashSec = document.getElementById('as-dashboard');
-        if(dashSec && dashSec.classList.contains('on')) renderDashStats();
-      }, (err) => console.warn('Products listener error:', err));
-
-      // ── REAL-TIME CATEGORIES LISTENER ──
-      onSnapshot(collection(db, 'categories'), (snap) => {
-        if(snap.empty) return;
-        const cats = [];
-        snap.forEach(d => cats.push({...d.data(), id: d.id}));
-        localStorage.setItem('waa_v4_cats', JSON.stringify(cats));
-        console.log(`🔄 Categories synced: ${cats.length}`);
-        const catSec = document.getElementById('as-categories');
-        if(catSec && catSec.classList.contains('on')) renderCatT();
-      }, (err) => console.warn('Categories listener error:', err));
-
-      // ── REAL-TIME ORDERS LISTENER ──
-      const ordQ = query(collection(db, 'orders'), orderBy('dateISO','desc'));
-      onSnapshot(ordQ, (snap) => {
-        if(snap.empty) return;
-        const ords = [];
-        snap.forEach(d => ords.push({...d.data(), id: d.id}));
-        localStorage.setItem('waa_v4_orders', JSON.stringify(ords));
-        console.log(`🔄 Orders synced: ${ords.length}`);
-        const ordSec = document.getElementById('as-orders');
-        if(ordSec && ordSec.classList.contains('on')) renderOrders();
-        const dashSec2 = document.getElementById('as-dashboard');
-        if(dashSec2 && dashSec2.classList.contains('on')) renderDashStats();
-        // Update orders badge
-        const newOrds = ords.filter(o => o.status === 'Pending' || o.status === 'Paid');
-        const badge = document.getElementById('ord-badge-count');
-        if(badge) badge.textContent = newOrds.length || '';
-      }, (err) => console.warn('Orders listener error:', err));
-
-      // ── AUTH STATE ──
-      onAuthStateChanged(auth, user => {
-        if (user) {
-          const n = user.displayName || user.email.split('@')[0];
-          const uEl = document.getElementById('adm-uname'); if(uEl) uEl.textContent = n;
-          const avEl = document.getElementById('adm-av'); if(avEl) avEl.textContent = n[0].toUpperCase();
-        }
-      });
-
-      document.dispatchEvent(new Event('fbReady'));
-      // Show sync indicator briefly
-      setTimeout(() => {
-        const ind = document.getElementById('sync-indicator');
-        if(ind) { ind.style.display='flex'; setTimeout(()=>ind.style.display='none', 2500); }
-      }, 1000);
-
-    } else {
-      console.log("ℹ️ Firebase not configured — using localStorage only.");
-      // Show setup banner immediately and also when DOM loads
-      function showFbBanner() {
-        var rem = document.getElementById('fb-setup-reminder');
-        if (rem) rem.style.display = 'block';
-      }
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', showFbBanner);
-      } else {
-        showFbBanner();
-      }
-    }
-  } catch(e) {
-    console.log("ℹ️ Firebase config error — using localStorage:", e.message);
-    window._fbReady = false;
+  if (s.ready) {
+    console.log('✅ Cloud sync ready — products will sync across all devices!');
+  } else {
+    console.log('ℹ️ Cloud sync not configured — products saved locally only.');
+    setTimeout(function() {
+      var rem = document.getElementById('fb-setup-reminder');
+      if (rem) rem.style.display = 'block';
+    }, 500);
   }
+})();
 </script>
+
 <style>
 :root{
   --pk:#ff4fa0;--pk2:#e8358c;--pk-l:#fff0f7;--pk-m:#ffe0f0;
@@ -1384,11 +1291,11 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
             <div style="flex:1;min-width:200px">
               <div style="font-weight:800;color:#fcd34d;font-size:.92rem;margin-bottom:.3rem">Products only visible on THIS device</div>
               <div style="font-size:.82rem;color:#7c6fa0;font-weight:600;line-height:1.6">
-                Firebase is not configured. Products you add in Admin are saved locally only — customers on other phones/laptops cannot see them.<br>
-                <strong style="color:#ede9ff">To show products to everyone: add your Firebase config to this HTML file.</strong>
+                Cloud sync not configured. Products added here are <strong style="color:#ede9ff">not visible on customer phones or other devices.</strong><br>
+                Fix in 2 minutes: Add a free JSONBin.io API key to this file → products sync everywhere instantly.
               </div>
             </div>
-            <button onclick="showFbGuide()" style="background:linear-gradient(135deg,#c084fc,#f472b6);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:50px;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;flex-shrink:0">🔥 Setup Firebase →</button>
+            <button onclick="showSyncGuide()" style="background:linear-gradient(135deg,#c084fc,#f472b6);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:50px;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;flex-shrink:0">☁️ Enable Cloud Sync →</button>
           </div>
         </div>
         <div class="astats">
@@ -1918,9 +1825,6 @@ function saveOrder(orderData) {
   var orders = gOrders();
   orders.unshift(orderData);
   sOrders(orders.slice(0,200));
-  if (window._fbReady) {
-    try { var fb=window._fb; fb.setDoc(fb.doc(fb.db,'orders',orderData.id), orderData, {merge:true}).catch(function(){}); } catch(e){}
-  }
 }
 
 // ══ PAYMENT ══
@@ -2173,31 +2077,63 @@ function compressImg(file, maxPx, quality) {
 }
 
 // ══ FIREBASE UPLOAD ══
+// ══ JSONBIN CLOUD SYNC HELPERS ══
+function cloudPush() {
+  // Push ALL products+categories to JSONBin (all devices will get them)
+  var s = window._SYNC;
+  if (!s || !s.ready) return Promise.resolve(false);
+  var payload = JSON.stringify({
+    products: gP(),
+    categories: gC(),
+    updatedAt: new Date().toISOString()
+  });
+  return fetch('https://api.jsonbin.io/v3/b/' + s.binId, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': s.apiKey
+    },
+    body: payload
+  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+}
+
+function cloudPull() {
+  // Pull latest products+categories from JSONBin (sync from other devices)
+  var s = window._SYNC;
+  if (!s || !s.ready) return Promise.resolve(false);
+  // Throttle: don't pull more than once per 10 seconds
+  var now = Date.now();
+  if (now - s.lastSync < 10000) return Promise.resolve(false);
+  s.lastSync = now;
+  return fetch('https://api.jsonbin.io/v3/b/' + s.binId + '/latest', {
+    headers: { 'X-Master-Key': s.apiKey }
+  }).then(function(r) { return r.json(); })
+    .then(function(json) {
+      var data = json.record;
+      if (!data) return false;
+      if (data.products && data.products.length > 0) {
+        localStorage.setItem('waa_v5_prods', JSON.stringify(data.products));
+      }
+      if (data.categories && data.categories.length > 0) {
+        localStorage.setItem('waa_v5_cats', JSON.stringify(data.categories));
+      }
+      return true;
+    }).catch(function() { return false; });
+}
+
 function fbUploadImg(file, prodId) {
-  if (!window._fbReady) return Promise.resolve(null);
-  try {
-    var fb = window._fb;
-    var r = fb.ref(fb.storage, 'products/' + prodId + '/' + Date.now() + '_' + file.name);
-    return fb.uploadBytes(r, file).then(function() { return fb.getDownloadURL(r); }).catch(function() { return null; });
-  } catch(e) { return Promise.resolve(null); }
+  // No image hosting in JSONBin mode — use base64 (already handled by compressImg)
+  return Promise.resolve(null);
 }
 
 function fbSaveProd(data) {
-  if (!window._fbReady) return Promise.resolve(null);
-  try {
-    var fb = window._fb;
-    return fb.setDoc(fb.doc(fb.db,'products',data.id), data, {merge:true}).then(function(){return data.id;}).catch(function(){return null;});
-  } catch(e) { return Promise.resolve(null); }
+  // Stub — actual save happens via cloudPush after saveProd
+  return Promise.resolve(data.id);
 }
 
 function fbUploadAndSync(data, files, prodId) {
-  if (!window._fbReady || !files.length) return Promise.resolve([]);
-  return Promise.all(files.map(function(f) { return fbUploadImg(f, prodId).catch(function(){return null;}); }))
-    .then(function(urls) {
-      urls = urls.filter(Boolean);
-      if (urls.length) data = Object.assign({}, data, {images: urls});
-      return fbSaveProd(data).then(function() { return urls; });
-    }).catch(function() { return []; });
+  // No separate upload needed — images are already base64 compressed
+  return Promise.resolve([]);
 }
 
 // ══ SAVE PRODUCT ══
@@ -2260,17 +2196,13 @@ async function saveProd(isDraft) {
   renderAdmProd();
   if (data.status === 'Active') renderHome();
 
-  if (window._fbReady && upStatus) {
-    upStatus.textContent = '☁️ Syncing to cloud…';
-    fbUploadAndSync(data, pendImgs.slice(0,6), prodId).then(function(cloudUrls) {
-      if (cloudUrls.length) {
-        data.images = cloudUrls;
-        var p2 = gP(); var idx = p2.findIndex(function(p){return p.id===prodId;});
-        if (idx>-1) { p2[idx].images = cloudUrls; sP(p2); }
-      }
-      if (upStatus) upStatus.textContent = cloudUrls.length ? '✅ Synced to Firebase!' : '✅ Saved locally';
-      setTimeout(function(){if(upStatus)upStatus.textContent='';}, 3000);
-    }).catch(function(){if(upStatus)upStatus.textContent='';});
+  // Push to cloud so ALL devices see the update
+  if (window._SYNC && window._SYNC.ready && upStatus) {
+    upStatus.textContent = '☁️ Syncing to all devices…';
+    cloudPush().then(function(ok) {
+      if (upStatus) upStatus.textContent = ok ? '✅ Synced! All devices updated' : '✅ Saved locally';
+      setTimeout(function(){ if(upStatus) upStatus.textContent=''; }, 3000);
+    });
   }
 }
 
@@ -2335,9 +2267,12 @@ function editProd(id) {
 async function delProd(id) {
   if(!confirm('Delete this product? This cannot be undone.')) return;
   sP(gP().filter(function(p){return p.id!==id;}));
-  if(window._fbReady){try{var fb=window._fb;await fb.deleteDoc(fb.doc(fb.db,'products',id));}catch(e){}}
   renderAdmProd(); renderDashStats(); renderHome();
   toast('Product deleted','🗑️');
+  // Sync deletion to all devices
+  if (window._SYNC && window._SYNC.ready) {
+    cloudPush().then(function(ok){ if(ok) console.log('Deletion synced to cloud'); });
+  }
 }
 
 // ══ CATEGORIES ══
@@ -2352,9 +2287,9 @@ async function saveCat() {
     desc: document.getElementById('c-desc').value
   };
   cats.push(nc); sC(cats);
-  if(window._fbReady){try{var fb=window._fb;await fb.setDoc(fb.doc(fb.db,'categories',nc.id),nc);}catch(e){}}
   ['c-name','c-slug','c-emoji','c-desc'].forEach(function(i){var e=document.getElementById(i);if(e)e.value='';});
   renderCatT(); toast('Category added! 🏷️');
+  if (window._SYNC && window._SYNC.ready) cloudPush();
 }
 
 async function delCat(id) {
@@ -2479,7 +2414,6 @@ function updOrderStatus(id, status) {
   var orders = gOrders();
   var o = orders.find(function(x){return x.id===id;});
   if(o){ o.status=status; sOrders(orders); }
-  if(window._fbReady){try{var fb=window._fb;fb.updateDoc(fb.doc(fb.db,'orders',id),{status:status}).catch(function(){});}catch(e){}}
   toast('Order status updated!','✅');
 }
 
@@ -2498,31 +2432,25 @@ function admTab(sec, btn) {
 }
 
 // ══ ADMIN AUTH ══
-async function adminLogin() {
+// ── ADMIN PASSWORD — change this to secure your admin panel ──
+var ADMIN_EMAIL = 'admin@waakids.in';  // change to your email
+var ADMIN_PASS  = 'waa@2025';          // change to your password
+
+function adminLogin() {
   var email = document.getElementById('adm-email').value.trim();
   var pwd   = document.getElementById('adm-pwd').value;
   var err   = document.getElementById('adm-err');
   err.classList.remove('show');
-  if(window._fbReady){
-    try{
-      var fb=window._fb;
-      var uc=await fb.signInWithEmailAndPassword(fb.auth,email,pwd);
-      var u=uc.user;
-      var nm=u.displayName||u.email.split('@')[0];
-      var uEl=document.getElementById('adm-uname'); if(uEl)uEl.textContent=nm;
-      var avEl=document.getElementById('adm-av'); if(avEl)avEl.textContent=nm[0].toUpperCase();
-      goPage('admin');
-    }catch(e){err.classList.add('show');}
+  if (email === ADMIN_EMAIL && pwd === ADMIN_PASS) {
+    var uEl = document.getElementById('adm-uname'); if(uEl) uEl.textContent = 'WAA Admin';
+    var avEl = document.getElementById('adm-av');   if(avEl) avEl.textContent = 'W';
+    goPage('admin');
   } else {
-    if(email.includes('@')&&pwd.length>=6){goPage('admin');}
-    else{err.classList.add('show');}
+    err.classList.add('show');
   }
 }
 
-async function adminLogout() {
-  if(window._fbReady){try{var fb=window._fb;await fb.signOut(fb.auth);}catch(e){}}
-  goPage('admin-login');
-}
+function adminLogout() { goPage('admin-login'); }
 
 // ══ MISC ══
 function copyCpn(code) {
@@ -2532,46 +2460,75 @@ function copyCpn(code) {
 }
 function doNL(e) { e.preventDefault(); toast('Subscribed! Welcome to WAA Kids Closet 💕','💕'); e.target.reset(); }
 function doContactMsg() { toast('Message sent! We\'ll reply within 1 hour 💕','💕'); }
-function showFbGuide() {
-  var steps = 'FIREBASE SETUP — Products visible on ALL devices\n\n';
-  steps += '1.  Go to: console.firebase.google.com\n';
-  steps += '2.  Click "Add Project" → name it: waa-kids-closet\n';
-  steps += '3.  Build → Firestore Database → Create → Start in TEST mode\n';
-  steps += '4.  Build → Storage → Get started → Start in TEST mode\n';
-  steps += '5.  Build → Authentication → Get started → Email/Password → Enable\n';
-  steps += '6.  Authentication → Users → Add user → your email + password\n';
-  steps += '7.  Click gear icon → Project Settings → Your Apps\n';
-  steps += '8.  Click </> Web icon → Register app → Copy the firebaseConfig\n';
-  steps += '9.  Open this HTML file in Notepad/VSCode\n';
-  steps += '10. Find the line: apiKey: "YOUR_API_KEY"\n';
-  steps += '11. Replace all YOUR_* values with your real Firebase values\n';
-  steps += '12. Save the file → upload to your hosting\n';
-  steps += '\nDone! Every product you add will instantly show on ALL customer phones!';
-  alert(steps);
+function showSyncGuide() {
+  var msg = 'ENABLE CLOUD SYNC (2 minutes, free)\n';
+  msg += '====================================\n\n';
+  msg += 'STEP 1: Create free account\n';
+  msg += '  Go to: https://jsonbin.io\n';
+  msg += '  Click "Sign Up" → use any email\n\n';
+  msg += 'STEP 2: Create a storage bin\n';
+  msg += '  Click "New Bin"\n';
+  msg += '  Paste this: {"products":[],"categories":[]}\n';
+  msg += '  Name it: waa-products\n';
+  msg += '  Click "Create Bin"\n';
+  msg += '  Copy the BIN ID shown (e.g. 64abc123...)\n\n';
+  msg += 'STEP 3: Get your API key\n';
+  msg += '  Click your profile → API Keys\n';
+  msg += '  Click "Add API Key" → name it: waa\n';
+  msg += '  Copy the key shown\n\n';
+  msg += 'STEP 4: Add to this file\n';
+  msg += '  Open this HTML file in Notepad or VSCode\n';
+  msg += '  Find these 2 lines near the top:\n';
+  msg += '    binId:  \'\',\n';
+  msg += '    apiKey: \'\',\n';
+  msg += '  Add your values:\n';
+  msg += '    binId:  \'64abc123...\',\n';
+  msg += '    apiKey: \'yourkey...\',\n';
+  msg += '  Save the file → re-upload to Vercel\n\n';
+  msg += 'DONE! Products now sync to ALL devices instantly!\n';
+  msg += 'Laptop adds product → customer phone shows it in 30 seconds.';
+  alert(msg);
+}
+function showFbGuide() { showSyncGuide(); }
+
+// ══ CLOUD INITIAL FETCH + AUTO-SYNC ══
+async function fetchFromCloud() {
+  if (!window._SYNC || !window._SYNC.ready) return;
+  try {
+    var ok = await cloudPull();
+    if (ok) {
+      console.log('✅ Products synced from cloud');
+      renderHome();
+      renderShop();
+    }
+  } catch(e) { console.warn('Cloud fetch:', e); }
 }
 
-// ══ FIREBASE INITIAL FETCH ══
-async function fetchFromFirebase() {
-  if(!window._fbReady) return;
-  var cached = localStorage.getItem('waa_v4_prods');
-  if(!cached || JSON.parse(cached).length === 0){
-    try{
-      var fb=window._fb;
-      var snap=await fb.getDocs(fb.query(fb.collection(fb.db,'products'),fb.orderBy('updatedAt','desc')));
-      if(!snap.empty){
-        var prods=[]; snap.forEach(function(d){prods.push(Object.assign({},d.data(),{id:d.id}));});
-        localStorage.setItem('waa_v4_prods',JSON.stringify(prods));
-        renderHome();
+// Auto-sync every 30 seconds (customers see new products without refresh)
+function startAutoSync() {
+  if (!window._SYNC || !window._SYNC.ready) return;
+  setInterval(async function() {
+    var ok = await cloudPull();
+    if (ok) {
+      var activePage = document.querySelector('.page.active');
+      if (activePage) {
+        var pg = activePage.id;
+        if (pg === 'page-home') renderHome();
+        if (pg === 'page-shop') renderShop();
       }
-    }catch(e){console.warn('Initial fetch:',e);}
-  }
+    }
+  }, 30000); // every 30 seconds
 }
 
 // ══ INIT ══
 function doEditCatMsg(){toast("To edit: delete this category and add a new one with the updated name");}
 renderHome();
 updBadge();
-document.addEventListener('fbReady', function(){ fetchFromFirebase(); });
+// Pull from cloud on load + start auto-sync
+setTimeout(function() {
+  fetchFromCloud();
+  startAutoSync();
+}, 800);
 
 </script>
 </body>
