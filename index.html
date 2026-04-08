@@ -25,6 +25,10 @@
 // 3. Project Settings (gear icon) → Your Apps → Web → Register App
 // 4. Copy the firebaseConfig object below
 // ══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
+// STEP 1: Paste your Firebase config values below
+// Get from: Firebase Console → Project Settings → Your Apps → Web
+// ════════════════════════════════════════════════════
 var firebaseConfig = {
   apiKey: "AIzaSyAhnZTl-1Wzda2t4dX9EX5MXKvXaIUuikk",
   authDomain: "waa-kids-closet-b5351.firebaseapp.com",
@@ -34,6 +38,7 @@ var firebaseConfig = {
   appId: "1:996993482315:web:b865e09734dbe7bc2bd7ce",
   measurementId: "G-1BW013MN8M"
 };
+// ════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
 
 // Keep JSONBin as fallback (already configured)
@@ -61,7 +66,7 @@ window._fbAU    = null;
       }
     }
   } catch(e) {}
-  var isConfigured = firebaseConfig.apiKey !== 'YOUR_API_KEY';
+  var isConfigured = firebaseConfig.apiKey !== 'PASTE_HERE' && firebaseConfig.apiKey.length > 10;
 
   if (isConfigured) {
     try {
@@ -95,11 +100,13 @@ window._fbAU    = null;
       window._fbDB.collection('orders')
         .orderBy('dateISO', 'desc')
         .onSnapshot(function(snap) {
-          if (snap.empty) return;
           var ords = [];
           snap.forEach(function(d) { ords.push(Object.assign({}, d.data(), {id: d.id})); });
-          localStorage.setItem('waa_v5_orders', JSON.stringify(ords));
+          if (ords.length > 0) {
+            localStorage.setItem('waa_v5_orders', JSON.stringify(ords));
+          }
           console.log('🔄 Orders synced: ' + ords.length);
+          // Always re-render — even empty means "no orders yet"
           var ao = document.getElementById('as-orders');
           if (ao && ao.classList.contains('on')) renderOrders();
           var ad2 = document.getElementById('as-dashboard');
@@ -1335,7 +1342,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
       <label class="al-lbl">Password</label>
       <input class="al-inp" type="password" id="adm-pwd" placeholder="••••••••">
       <button class="al-btn" onclick="adminLogin()">Login to Admin Panel →</button>
-      <div class="al-err" id="adm-err">Invalid email or password. Please try again.</div>
+      <div class="al-err" id="adm-err">Wrong email or password</div>
       <p class="al-ft">🔒 Protected · <a href="#">Forgot password?</a> · Configure Firebase to enable Auth</p>
     </div>
   </div>
@@ -2246,8 +2253,12 @@ function fbDelProd(id) {
 // Save order to Firestore
 function fbSaveOrder(data) {
   if (!window._fbReady || !window._fbDB) return Promise.resolve();
+  // Ensure dateISO exists for orderBy to work
+  if (!data.dateISO) data.dateISO = new Date().toISOString();
   return window._fbDB.collection('orders').doc(data.id)
-    .set(data, {merge: true}).catch(function(){});
+    .set(data, {merge: true})
+    .then(function(){ console.log('✅ Order saved to Firestore:', data.id); })
+    .catch(function(e){ console.warn('Order save failed:', e); });
 }
 
 // Update order status in Firestore
@@ -2642,26 +2653,39 @@ async function adminLogin() {
   var email = document.getElementById('adm-email').value.trim();
   var pwd   = document.getElementById('adm-pwd').value;
   var err   = document.getElementById('adm-err');
+  var btn   = document.getElementById('adm-login-btn');
   err.classList.remove('show');
+  if (btn) { btn.textContent = 'Signing in…'; btn.disabled = true; }
+
   if (window._fbReady && window._fbAU) {
-    // Firebase Auth login
+    // ── Firebase Authentication ──
     try {
       var cred = await window._fbAU.signInWithEmailAndPassword(email, pwd);
-      var name = cred.user.displayName || cred.user.email.split('@')[0];
-      var uEl = document.getElementById('adm-uname'); if(uEl) uEl.textContent = name;
-      var avEl = document.getElementById('adm-av');   if(avEl) avEl.textContent = name[0].toUpperCase();
+      var name = (cred.user.displayName || cred.user.email.split('@')[0]);
+      var uEl  = document.getElementById('adm-uname'); if(uEl)  uEl.textContent  = name;
+      var avEl = document.getElementById('adm-av');    if(avEl) avEl.textContent = name[0].toUpperCase();
+      if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
       goPage('admin');
     } catch(e) {
-      console.warn('Firebase login failed:', e.code);
+      if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+      var msg = 'Wrong email or password';
+      if (e.code === 'auth/user-not-found')    msg = 'No account with that email';
+      if (e.code === 'auth/wrong-password')    msg = 'Wrong password';
+      if (e.code === 'auth/too-many-requests') msg = 'Too many attempts — try later';
+      err.textContent = msg;
       err.classList.add('show');
+      console.warn('Firebase login:', e.code);
     }
   } else {
-    // Local fallback login
+    // ── Local password fallback (when Firebase not configured) ──
     if (email === ADMIN_EMAIL && pwd === ADMIN_PASS) {
-      var uEl = document.getElementById('adm-uname'); if(uEl) uEl.textContent = 'WAA Admin';
-      var avEl = document.getElementById('adm-av');   if(avEl) avEl.textContent = 'W';
+      var uEl  = document.getElementById('adm-uname'); if(uEl)  uEl.textContent  = 'WAA Admin';
+      var avEl = document.getElementById('adm-av');    if(avEl) avEl.textContent = 'W';
+      if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
       goPage('admin');
     } else {
+      if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+      err.textContent = 'Wrong email or password';
       err.classList.add('show');
     }
   }
@@ -2672,6 +2696,7 @@ async function adminLogout() {
     try { await window._fbAU.signOut(); } catch(e) {}
   }
   goPage('admin-login');
+  toast('Logged out successfully', '👋');
 }
 
 // ══ MISC ══
@@ -2893,6 +2918,15 @@ function applySyncCredentials() {
 
 renderHome();
 updBadge();
+// Show login mode hint
+setTimeout(function() {
+  var hint = document.getElementById('adm-mode-hint');
+  if (hint) {
+    hint.textContent = window._fbReady
+      ? '🔥 Secured with Firebase Authentication'
+      : '🔑 Local login: ' + ADMIN_EMAIL;
+  }
+}, 800);
 // Pull from cloud on load + start auto-sync
 setTimeout(function() {
   fetchFromCloud();
