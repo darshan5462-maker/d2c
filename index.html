@@ -25,11 +25,8 @@
 // 3. Project Settings (gear icon) → Your Apps → Web → Register App
 // 4. Copy the firebaseConfig object below
 // ══════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════
-// STEP 1: Paste your Firebase config values below
-// Get from: Firebase Console → Project Settings → Your Apps → Web
-// ════════════════════════════════════════════════════
-var firebaseConfig = {
+// ── STEP 1: Paste your Firebase config here ──────────────────
+const firebaseConfig = {
   apiKey: "AIzaSyAhnZTl-1Wzda2t4dX9EX5MXKvXaIUuikk",
   authDomain: "waa-kids-closet-b5351.firebaseapp.com",
   projectId: "waa-kids-closet-b5351",
@@ -37,8 +34,9 @@ var firebaseConfig = {
   messagingSenderId: "996993482315",
   appId: "1:996993482315:web:b865e09734dbe7bc2bd7ce",
   measurementId: "G-1BW013MN8M"
+
 };
-// ════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════
 
 // Keep JSONBin as fallback (already configured)
@@ -56,17 +54,10 @@ window._fbAU    = null;
 
 (function() {
   // Check localStorage for dynamically saved config
-  try {
-    var saved = localStorage.getItem('waa_fb_config');
-    if (saved) {
-      var savedCfg = JSON.parse(saved);
-      if (savedCfg.apiKey && savedCfg.apiKey !== 'YOUR_API_KEY') {
-        firebaseConfig = savedCfg;
-        console.log('✅ Firebase config loaded from localStorage');
-      }
-    }
-  } catch(e) {}
-  var isConfigured = firebaseConfig.apiKey !== 'PASTE_HERE' && firebaseConfig.apiKey.length > 10;
+  // Note: const firebaseConfig cannot be reassigned — localStorage restore
+  // is handled via applyFirebaseConfig() which reloads the page with saved values
+  // embedded. For dynamic config, use the admin panel Setup card.
+  var isConfigured = (typeof firebaseConfig !== 'undefined') && firebaseConfig.apiKey !== 'PASTE_HERE' && firebaseConfig.apiKey.length > 10;
 
   if (isConfigured) {
     try {
@@ -1341,7 +1332,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
       <input class="al-inp" type="email" id="adm-email" placeholder="admin@waakidscloset.in">
       <label class="al-lbl">Password</label>
       <input class="al-inp" type="password" id="adm-pwd" placeholder="••••••••">
-      <button class="al-btn" onclick="adminLogin()">Login to Admin Panel →</button>
+      <button class="al-btn" id="adm-login-btn" onclick="adminLogin()">Login to Admin Panel →</button>
       <div class="al-err" id="adm-err">Wrong email or password</div>
       <p class="al-ft">🔒 Protected · <a href="#">Forgot password?</a> · Configure Firebase to enable Auth</p>
     </div>
@@ -1582,7 +1573,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
           <button class="abt-o" style="margin-left:auto">📥 Export CSV</button>
         </div>
         <div class="acard" style="overflow-x:auto">
-          <table class="at"><thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>Items</th><th>Amount</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
+          <table class="at"><thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>Items</th><th>Amount</th><th>Date</th><th>Status</th><th>Update</th><th>WhatsApp</th></tr></thead>
           <tbody id="real-orders-t"></tbody></table>
         </div>
       </div>
@@ -2599,7 +2590,7 @@ function renderOrders() {
   var t = document.getElementById('real-orders-t'); if(!t) return;
   var orders = gOrders();
   if(!orders.length){
-    t.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#7c6fa0;padding:3rem;font-weight:700">'
+    t.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#7c6fa0;padding:3rem;font-weight:700">'
       +'<div style="font-size:2.5rem;margin-bottom:.75rem">📦</div>'
       +'No orders yet. Orders placed by customers will appear here automatically!</td></tr>';
     return;
@@ -2609,6 +2600,21 @@ function renderOrders() {
     var opts = ['Pending','Paid','Shipped','Delivered','Cancelled'].map(function(s){
       return '<option'+(o.status===s?' selected':'')+'>'+s+'</option>';
     }).join('');
+    // Clean phone — digits only
+    var ph = (o.phone||'').replace(/[^0-9]/g,'');
+    if(ph.length===10) ph = '91'+ph; // add India code
+    var hasPhone = ph.length >= 10;
+    // WhatsApp buttons — use data attributes to avoid quote issues in onclick
+    var oid = o.orderId||('#'+o.id);
+    var amt = String(o.amount||0);
+    var waBtn = hasPhone
+      ? '<div style="display:flex;flex-direction:column;gap:.3rem">'
+        +'<button class="wa-btn" data-ph="'+ph+'" data-oid="'+oid+'" data-st="Confirmed" data-amt="'+amt+'" style="background:#25D366;color:#fff;border:none;border-radius:6px;padding:.25rem .55rem;font-size:.68rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Confirmed</button>'
+        +'<button class="wa-btn" data-ph="'+ph+'" data-oid="'+oid+'" data-st="Shipped"   data-amt="'+amt+'" style="background:#5bb8ff;color:#fff;border:none;border-radius:6px;padding:.25rem .55rem;font-size:.68rem;font-weight:700;cursor:pointer;white-space:nowrap">🚚 Shipped</button>'
+        +'<button class="wa-btn" data-ph="'+ph+'" data-oid="'+oid+'" data-st="Delivered" data-amt="'+amt+'" style="background:#4ecb71;color:#fff;border:none;border-radius:6px;padding:.25rem .55rem;font-size:.68rem;font-weight:700;cursor:pointer;white-space:nowrap">🎉 Delivered</button>'
+        +'<button class="wa-btn" data-ph="'+ph+'" data-oid="'+oid+'" data-st="Cancelled" data-amt="'+amt+'" style="background:#ff5252;color:#fff;border:none;border-radius:6px;padding:.25rem .55rem;font-size:.68rem;font-weight:700;cursor:pointer;white-space:nowrap">❌ Cancelled</button>'
+        +'</div>'
+      : '<span style="font-size:.7rem;color:#7c6fa0">No phone</span>';
     return '<tr>'
       +'<td style="font-family:monospace;font-size:.72rem;color:#c084fc">'+(o.orderId||'#'+o.id)+'</td>'
       +'<td style="font-weight:700">'+(o.customer||'—')+'</td>'
@@ -2617,37 +2623,88 @@ function renderOrders() {
       +'<td style="font-weight:800">₹'+(o.amount||0).toLocaleString()+'</td>'
       +'<td style="color:#7c6fa0;font-size:.73rem">'+(o.date||'—')+'<br><span style="font-size:.65rem">'+(o.time||'')+'</span></td>'
       +'<td><span class="sp '+(stMap[o.status]||'sp-p')+'">'+(o.status||'Pending')+'</span></td>'
-      +'<td><select class="as-sel" style="padding:.22rem .5rem;font-size:.7rem" onchange="updOrderStatus(\''+o.id+'\',this.value)">'+opts+'</select></td>'
+      +'<td><select class="as-sel" style="padding:.22rem .5rem;font-size:.7rem" data-oid="'+o.id+'" onchange="updOrderStatus(this.dataset.oid,this.value)">'+opts+'</select></td>'
+      +'<td>'+waBtn+'</td>'
       +'</tr>';
   }).join('');
 }
+
+// Event delegation for WhatsApp buttons (handles dynamic rows)
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.wa-btn');
+  if (!btn) return;
+  var ph  = btn.dataset.ph;
+  var oid = btn.dataset.oid;
+  var st  = btn.dataset.st;
+  var amt = btn.dataset.amt;
+  // Get customer name from same row
+  var row = btn.closest('tr');
+  var cust = row ? (row.cells[1] && row.cells[1].textContent.trim()) : 'Customer';
+  sendWA(ph, oid, cust, st, amt);
+});
 
 function updOrderStatus(id, status) {
   var orders = gOrders();
   var o = orders.find(function(x){return x.id===id;});
   if(o){ o.status=status; sOrders(orders); }
   fbUpdateOrderStatus(id, status);
-  toast('Order status updated!','✅');
+  toast('Order status updated! Send WhatsApp to notify customer ✅','✅');
+  renderOrders(); // refresh to show updated status badge
 }
 
-// ══ ADMIN TAB ══
-function admTab(sec, btn) {
-  document.querySelectorAll('.asec').forEach(function(s){s.classList.remove('on');});
-  var t = document.getElementById('as-'+sec); if(t) t.classList.add('on');
-  document.querySelectorAll('.adm-tab').forEach(function(t){t.classList.remove('on');});
-  if(btn){btn.classList.add('on');}
-  else{var mt=document.querySelector('.adm-tab[data-sec="'+sec+'"]'); if(mt)mt.classList.add('on');}
-  if(sec==='products')   renderAdmProd();
-  if(sec==='dashboard')  renderDashStats();
-  if(sec==='categories') renderCatT();
-  if(sec==='orders')     renderOrders();
-  if(sec==='add-product'){pendImgs=[];editImgs=[];var ip=document.getElementById('img-prev');if(ip)ip.innerHTML='';}
+// ── WHATSAPP NOTIFICATION ──
+function sendWA(phone, orderId, customer, statusType, amount) {
+  var name = customer || 'Customer';
+  var storeLink = 'https://d2c-beta.vercel.app';
+  var msg = '';
+
+  if (statusType === 'Confirmed') {
+    msg = 'Hello ' + name + '! 👋\n\n'
+      + '✅ *Your order is CONFIRMED!*\n\n'
+      + '📦 Order ID: ' + orderId + '\n'
+      + '💰 Amount: ₹' + amount + '\n\n'
+      + '🏪 *WAA Kids Closet*\n'
+      + 'Thank you for shopping with us! We are preparing your order.\n\n'
+      + '📍 Harihar, Karnataka\n'
+      + '📞 +91 93800 13093';
+  } else if (statusType === 'Shipped') {
+    msg = 'Hello ' + name + '! 👋\n\n'
+      + '🚚 *Your order has been SHIPPED!*\n\n'
+      + '📦 Order ID: ' + orderId + '\n'
+      + '💰 Amount: ₹' + amount + '\n\n'
+      + 'Your order is on the way! Expected delivery in 2–5 days.\n\n'
+      + '🏪 *WAA Kids Closet*\n'
+      + '📞 +91 93800 13093\n'
+      + 'For any queries, reply to this message.';
+  } else if (statusType === 'Delivered') {
+    msg = 'Hello ' + name + '! 🎉\n\n'
+      + '✅ *Your order has been DELIVERED!*\n\n'
+      + '📦 Order ID: ' + orderId + '\n'
+      + '💰 Amount: ₹' + amount + '\n\n'
+      + 'We hope you love your purchase! 💕\n\n'
+      + '⭐ Share your feedback — it helps us grow!\n\n'
+      + '🛍️ Shop again: ' + storeLink + '\n'
+      + '🏪 *WAA Kids Closet* | +91 93800 13093';
+  } else if (statusType === 'Cancelled') {
+    msg = 'Hello ' + name + ',\n\n'
+      + '❌ *Your order has been CANCELLED.*\n\n'
+      + '📦 Order ID: ' + orderId + '\n'
+      + '💰 Amount: ₹' + amount + '\n\n'
+      + 'If you paid online, your refund will be processed in 3–5 business days.\n\n'
+      + 'For any queries:\n'
+      + '📞 +91 93800 13093\n'
+      + '🏪 *WAA Kids Closet*, Harihar';
+  }
+
+  var encoded = encodeURIComponent(msg);
+  var waUrl = 'https://wa.me/' + phone + '?text=' + encoded;
+  window.open(waUrl, '_blank');
+  toast('WhatsApp opened for ' + name + '!', '📱');
 }
 
 // ══ ADMIN AUTH ══
-// ── ADMIN PASSWORD — change this to secure your admin panel ──
-var ADMIN_EMAIL = 'admin@waakids.in';  // change to your email
-var ADMIN_PASS  = 'waa@2025';          // change to your password
+var ADMIN_EMAIL = 'admin@waakids.in';
+var ADMIN_PASS  = 'waa@2025';
 
 async function adminLogin() {
   var email = document.getElementById('adm-email').value.trim();
@@ -2658,10 +2715,9 @@ async function adminLogin() {
   if (btn) { btn.textContent = 'Signing in…'; btn.disabled = true; }
 
   if (window._fbReady && window._fbAU) {
-    // ── Firebase Authentication ──
     try {
       var cred = await window._fbAU.signInWithEmailAndPassword(email, pwd);
-      var name = (cred.user.displayName || cred.user.email.split('@')[0]);
+      var name = cred.user.displayName || cred.user.email.split('@')[0];
       var uEl  = document.getElementById('adm-uname'); if(uEl)  uEl.textContent  = name;
       var avEl = document.getElementById('adm-av');    if(avEl) avEl.textContent = name[0].toUpperCase();
       if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
@@ -2674,10 +2730,8 @@ async function adminLogin() {
       if (e.code === 'auth/too-many-requests') msg = 'Too many attempts — try later';
       err.textContent = msg;
       err.classList.add('show');
-      console.warn('Firebase login:', e.code);
     }
   } else {
-    // ── Local password fallback (when Firebase not configured) ──
     if (email === ADMIN_EMAIL && pwd === ADMIN_PASS) {
       var uEl  = document.getElementById('adm-uname'); if(uEl)  uEl.textContent  = 'WAA Admin';
       var avEl = document.getElementById('adm-av');    if(avEl) avEl.textContent = 'W';
@@ -2707,230 +2761,74 @@ function copyCpn(code) {
 }
 function doNL(e) { e.preventDefault(); toast('Subscribed! Welcome to WAA Kids Closet 💕','💕'); e.target.reset(); }
 function doContactMsg() { toast('Message sent! We\'ll reply within 1 hour 💕','💕'); }
-function showSyncGuide() {
-  var msg = 'ENABLE CLOUD SYNC (2 minutes, free)\n';
-  msg += '====================================\n\n';
-  msg += 'STEP 1: Create free account\n';
-  msg += '  Go to: https://jsonbin.io\n';
-  msg += '  Click "Sign Up" → use any email\n\n';
-  msg += 'STEP 2: Create a storage bin\n';
-  msg += '  Click "New Bin"\n';
-  msg += '  Paste this: {"products":[],"categories":[]}\n';
-  msg += '  Name it: waa-products\n';
-  msg += '  Click "Create Bin"\n';
-  msg += '  Copy the BIN ID shown (e.g. 64abc123...)\n\n';
-  msg += 'STEP 3: Get your API key\n';
-  msg += '  Click your profile → API Keys\n';
-  msg += '  Click "Add API Key" → name it: waa\n';
-  msg += '  Copy the key shown\n\n';
-  msg += 'STEP 4: Add to this file\n';
-  msg += '  Open this HTML file in Notepad or VSCode\n';
-  msg += '  Find these 2 lines near the top:\n';
-  msg += '    binId:  \'\',\n';
-  msg += '    apiKey: \'\',\n';
-  msg += '  Add your values:\n';
-  msg += '    binId:  \'64abc123...\',\n';
-  msg += '    apiKey: \'yourkey...\',\n';
-  msg += '  Save the file → re-upload to Vercel\n\n';
-  msg += 'DONE! Products now sync to ALL devices instantly!\n';
-  msg += 'Laptop adds product → customer phone shows it in 30 seconds.';
-  alert(msg);
-}
-function showFbGuide() { showSyncGuide(); }
+function doEditCatMsg() { toast('To edit: delete and re-add with new name'); }
 
-// ══ CLOUD INITIAL FETCH + AUTO-SYNC ══
-async function fetchFromCloud() {
-  if (!window._SYNC || !window._SYNC.ready) return;
-  try {
-    var ok = await cloudPull();
-    if (ok) {
-      console.log('✅ Products synced from cloud');
-      renderHome();
-      renderShop();
-    }
-  } catch(e) { console.warn('Cloud fetch:', e); }
+// ══ FIREBASE SETUP GUIDE ══
+function showFbSetupGuide() {
+  var steps = [
+    'FIREBASE SETUP GUIDE (5 minutes, free)',
+    '1. console.firebase.google.com -> Create project: waa-kids-closet',
+    '2. Firestore Database -> Create -> Test mode',
+    '3. Storage -> Get started -> Test mode',
+    '4. Authentication -> Email/Password -> Enable -> Add your email + password',
+    '5. Project Settings (gear) -> Your Apps -> Web -> Register -> copy firebaseConfig',
+    '6. Open HTML in Notepad -> find line 28 -> paste values -> Save -> Upload to Vercel'
+  ].join('\n');
+  alert(steps);
 }
 
-// Auto-sync every 30 seconds (customers see new products without refresh)
-function startAutoSync() {
-  if (!window._SYNC || !window._SYNC.ready) return;
-  setInterval(async function() {
-    var ok = await cloudPull();
-    if (ok) {
-      var activePage = document.querySelector('.page.active');
-      if (activePage) {
-        var pg = activePage.id;
-        if (pg === 'page-home') renderHome();
-        if (pg === 'page-shop') renderShop();
-      }
-    }
-  }, 30000); // every 30 seconds
-}
-
-// ══ INIT ══
-function doEditCatMsg(){toast("To edit: delete this category and add a new one with the updated name");}
-
-// ══ FIREBASE DYNAMIC CONFIG (paste config in admin, no file edit needed) ══
 function applyFirebaseConfig() {
   var raw = (document.getElementById('fb-config-inp')||{}).value.trim();
   if (!raw) { toast('Paste your Firebase config first','❌'); return; }
   try {
-    // Extract values from the config object text
     function extract(key) {
-      var m = raw.match(new RegExp(key + '["\'\s]*:["\'\s]*([^"\',}\n]+)'));
-      return m ? m[1].trim().replace(/["\']/g,'') : '';
+      var m = raw.match(new RegExp(key+'["\s]*:["\s]*([^"\'}\n]+)'));
+      return m ? m[1].trim().replace(/["']/g,'') : '';
     }
     var cfg = {
-      apiKey:            extract('apiKey'),
-      authDomain:        extract('authDomain'),
-      projectId:         extract('projectId'),
-      storageBucket:     extract('storageBucket'),
-      messagingSenderId: extract('messagingSenderId'),
-      appId:             extract('appId')
+      apiKey: extract('apiKey'), authDomain: extract('authDomain'),
+      projectId: extract('projectId'), storageBucket: extract('storageBucket'),
+      messagingSenderId: extract('messagingSenderId'), appId: extract('appId')
     };
-    if (!cfg.apiKey || !cfg.projectId) {
-      toast('Config looks incomplete — check you copied all fields','❌'); return;
-    }
-    // Save to localStorage
+    if (!cfg.apiKey || !cfg.projectId) { toast('Config looks incomplete','❌'); return; }
     localStorage.setItem('waa_fb_config', JSON.stringify(cfg));
-    toast('Applying Firebase config… reloading in 2 seconds 🔥','🔥');
+    toast('Saved! Reloading in 2 seconds...','🔥');
     setTimeout(function() { location.reload(); }, 2000);
-  } catch(e) {
-    toast('Could not read config — paste the full firebaseConfig object','❌');
-    console.warn('Config parse error:', e);
-  }
+  } catch(e) { toast('Could not read config','❌'); }
 }
 
-function showFbSetupGuide() {
-  var steps = [
-    'FIREBASE SETUP GUIDE (5 minutes, free)',
-    '======================================',
-    '',
-    '1. Go to: console.firebase.google.com',
-    '2. Click "Add project" → name: waa-kids-closet',
-    '3. Firestore Database → Create → Test mode',
-    '4. Storage → Get started → Test mode',
-    '5. Authentication → Email/Password → Enable',
-    '6. Add your admin user (email + password)',
-    '7. Project Settings (gear) → Your Apps → Web',
-    '8. Register App → copy firebaseConfig',
-    '9. Paste it in the box above → Connect Firebase',
-    '',
-    'After setup:',
-    '- Products sync to ALL devices in real-time',
-    '- Images stored permanently in Firebase Storage',
-    '- Orders appear in admin instantly',
-    '- Admin login secured with Firebase Auth'
-  ];
-  alert(steps.join('\n'));
+// ══ CLOUD AUTO-SYNC (JSONBin fallback when Firebase not configured) ══
+async function fetchFromCloud() {
+  if (window._fbReady) return;
+  if (!window._SYNC || !window._SYNC.ready) return;
+  try { var ok = await cloudPull(); if (ok) { renderHome(); } } catch(e) {}
 }
 
-// ══ SYNC CREDENTIAL UI ══
-function checkSyncInputs() {
-  var binId  = (document.getElementById('sync-bin-id')||{}).value || '';
-  var apiKey = (document.getElementById('sync-api-key')||{}).value || '';
-  var btn = document.getElementById('sync-connect-btn');
-  if (!btn) return;
-  var ready = binId.trim().length > 10 && apiKey.trim().length > 10;
-  btn.disabled = !ready;
-  btn.style.background = ready ? 'linear-gradient(135deg,#c084fc,#f472b6)' : 'rgba(192,132,252,.3)';
-  btn.style.color = ready ? '#fff' : '#9b6fc4';
-  btn.style.cursor = ready ? 'pointer' : 'not-allowed';
-}
-
-function applyImgBBKey() {
-  var key = (document.getElementById('imgbb-key-inp')||{}).value.trim();
-  if (!key || key.length < 10) { toast('Enter a valid ImgBB API key','❌'); return; }
-  window._IMGBB_KEY = key;
-  localStorage.setItem('waa_imgbb_key', key);
-  var st = document.getElementById('imgbb-status');
-  if (st) st.style.display = 'block';
-  toast('ImgBB key saved! Images will now upload to cloud 🎉','🖼️');
-}
-
-// Restore saved ImgBB key on load
-(function() {
-  var saved = localStorage.getItem('waa_imgbb_key');
-  if (saved) {
-    window._IMGBB_KEY = saved;
-    var inp = document.getElementById('imgbb-key-inp');
-    if (inp) inp.value = saved;
-    var st = document.getElementById('imgbb-status');
-    if (st) st.style.display = 'block';
-  }
-})();
-
-function applySyncCredentials() {
-  var binId  = (document.getElementById('sync-bin-id')||{}).value.trim();
-  var apiKey = (document.getElementById('sync-api-key')||{}).value.trim();
-  if (!binId || !apiKey) { toast('Enter both Bin ID and API Key','❌'); return; }
-
-  // Apply to _SYNC live (no file edit needed this session)
-  window._SYNC.binId  = binId;
-  window._SYNC.apiKey = apiKey;
-  window._SYNC.ready  = true;
-
-  // Save to localStorage so it persists across refreshes
-  localStorage.setItem('waa_sync_creds', JSON.stringify({binId: binId, apiKey: apiKey}));
-
-  var btn = document.getElementById('sync-connect-btn');
-  if (btn) { btn.textContent = 'Testing…'; btn.disabled = true; }
-
-  // Test the connection
-  cloudPush().then(function(ok) {
+function startAutoSync() {
+  if (window._fbReady) return;
+  if (!window._SYNC || !window._SYNC.ready) return;
+  setInterval(async function() {
+    var ok = await cloudPull();
     if (ok) {
-      var msg = document.getElementById('sync-status-msg');
-      if (msg) msg.style.display = 'block';
-      if (btn) { btn.textContent = '✅ Connected!'; }
-      toast('Cloud sync enabled! Products now visible on all devices 🎉', '✅');
-      // Sync current products up immediately
-      cloudPull();
-      startAutoSync();
-      // Hide the reminder after 3 seconds
-      setTimeout(function() {
-        var rem = document.getElementById('fb-setup-reminder');
-        if (rem) rem.style.display = 'none';
-      }, 3000);
-    } else {
-      if (btn) { btn.textContent = 'Connect →'; btn.disabled = false; }
-      toast('Connection failed — make sure Bin ID is correct (no spaces)', '❌');
-      window._SYNC.ready = false;
-      console.warn('Failed with binId:', binId.length, 'chars, apiKey:', apiKey.length, 'chars');
+      var pg = (document.querySelector('.page.active')||{}).id || '';
+      if (pg === 'page-home') renderHome();
+      if (pg === 'page-shop') renderShop();
     }
-  });
+  }, 30000);
 }
 
-// Restore saved credentials on load
-(function() {
-  try {
-    var saved = localStorage.getItem('waa_sync_creds');
-    if (saved) {
-      var creds = JSON.parse(saved);
-      if (creds.binId && creds.apiKey) {
-        window._SYNC.binId  = creds.binId;
-        window._SYNC.apiKey = creds.apiKey;
-        window._SYNC.ready  = true;
-        console.log('✅ Cloud sync restored from saved credentials');
-      }
-    }
-  } catch(e) {}
-})();
-
+// ══ INIT ══
 renderHome();
 updBadge();
-// Show login mode hint
 setTimeout(function() {
+  fetchFromCloud();
+  startAutoSync();
   var hint = document.getElementById('adm-mode-hint');
   if (hint) {
     hint.textContent = window._fbReady
       ? '🔥 Secured with Firebase Authentication'
       : '🔑 Local login: ' + ADMIN_EMAIL;
   }
-}, 800);
-// Pull from cloud on load + start auto-sync
-setTimeout(function() {
-  fetchFromCloud();
-  startAutoSync();
 }, 800);
 
 </script>
