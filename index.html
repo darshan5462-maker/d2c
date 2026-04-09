@@ -1715,7 +1715,16 @@ function goPage(p) {
   if (p === 'shop')     renderShop();
   if (p === 'cart')     renderCart();
   if (p === 'checkout') renderCO();
-  if (p === 'admin')    { renderDashStats(); renderAdmProd(); renderCatT(); renderOrders(); }
+  if (p === 'admin')    {
+    // Restore last active tab on admin enter
+    var lastTab = sessionStorage.getItem('waa_adm_tab') || 'dashboard';
+    renderDashStats(); renderAdmProd(); renderCatT(); renderOrders();
+    admTab(lastTab, null);
+  }
+  // Remember current page so refresh restores it
+  if (p !== 'checkout' && p !== 'success') {
+    sessionStorage.setItem('waa_cur_page', p);
+  }
   updBadge();
 }
 
@@ -2629,6 +2638,23 @@ function renderOrders() {
   }).join('');
 }
 
+// ══ ADMIN TAB SWITCHER ══
+function admTab(sec, btn) {
+  document.querySelectorAll('.asec').forEach(function(s){ s.classList.remove('on'); });
+  var t = document.getElementById('as-'+sec);
+  if (t) t.classList.add('on');
+  document.querySelectorAll('.adm-tab').forEach(function(t){ t.classList.remove('on'); });
+  if (btn) { btn.classList.add('on'); }
+  else { var mt = document.querySelector('.adm-tab[data-sec="'+sec+'"]'); if(mt) mt.classList.add('on'); }
+  // Save current tab to sessionStorage so refresh stays on same tab
+  sessionStorage.setItem('waa_adm_tab', sec);
+  if (sec === 'products')    renderAdmProd();
+  if (sec === 'dashboard')   renderDashStats();
+  if (sec === 'categories')  renderCatT();
+  if (sec === 'orders')      renderOrders();
+  if (sec === 'add-product') { pendImgs=[]; editImgs=[]; var ip=document.getElementById('img-prev'); if(ip) ip.innerHTML=''; }
+}
+
 // Event delegation for WhatsApp buttons (handles dynamic rows)
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('.wa-btn');
@@ -2721,6 +2747,7 @@ async function adminLogin() {
       var uEl  = document.getElementById('adm-uname'); if(uEl)  uEl.textContent  = name;
       var avEl = document.getElementById('adm-av');    if(avEl) avEl.textContent = name[0].toUpperCase();
       if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+      sessionStorage.setItem('waa_adm_logged', '1');
       goPage('admin');
     } catch(e) {
       if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
@@ -2736,6 +2763,7 @@ async function adminLogin() {
       var uEl  = document.getElementById('adm-uname'); if(uEl)  uEl.textContent  = 'WAA Admin';
       var avEl = document.getElementById('adm-av');    if(avEl) avEl.textContent = 'W';
       if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+      sessionStorage.setItem('waa_adm_logged', '1');
       goPage('admin');
     } else {
       if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
@@ -2749,6 +2777,9 @@ async function adminLogout() {
   if (window._fbReady && window._fbAU) {
     try { await window._fbAU.signOut(); } catch(e) {}
   }
+  sessionStorage.removeItem('waa_adm_logged');
+  sessionStorage.removeItem('waa_cur_page');
+  sessionStorage.removeItem('waa_adm_tab');
   goPage('admin-login');
   toast('Logged out successfully', '👋');
 }
@@ -2818,8 +2849,16 @@ function startAutoSync() {
 }
 
 // ══ INIT ══
-renderHome();
-updBadge();
+(function restoreSession() {
+  var savedPage = sessionStorage.getItem('waa_cur_page');
+  if (savedPage === 'admin') {
+    // Check if user was logged into admin — restore admin panel
+    var wasAdmin = sessionStorage.getItem('waa_adm_logged') === '1';
+    if (wasAdmin) { goPage('admin'); return; }
+  }
+  renderHome();
+  updBadge();
+})();
 setTimeout(function() {
   fetchFromCloud();
   startAutoSync();
