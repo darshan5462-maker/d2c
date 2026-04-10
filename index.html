@@ -27,12 +27,14 @@
 // ══════════════════════════════════════════════════════════════
 // ── STEP 1: Paste your Firebase config here ──────────────────
 const firebaseConfig = {
-  apiKey:            "PASTE_HERE",
-  authDomain:        "PASTE_HERE",
-  projectId:         "PASTE_HERE",
-  storageBucket:     "PASTE_HERE",
-  messagingSenderId: "PASTE_HERE",
-  appId:             "PASTE_HERE"
+  apiKey: "AIzaSyAhnZTl-1Wzda2t4dX9EX5MXKvXaIUuikk",
+  authDomain: "waa-kids-closet-b5351.firebaseapp.com",
+  projectId: "waa-kids-closet-b5351",
+  storageBucket: "waa-kids-closet-b5351.firebasestorage.app",
+  messagingSenderId: "996993482315",
+  appId: "1:996993482315:web:b865e09734dbe7bc2bd7ce",
+  measurementId: "G-1BW013MN8M"
+
 };
 // ─────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════
@@ -157,7 +159,7 @@ window._fbAU    = null;
 html{scroll-behavior:smooth;scroll-padding-top:130px}
 body{font-family:var(--fn);background:var(--bg);color:var(--tx);overflow-x:hidden}
 img{max-width:100%;display:block}
-.page{display:none;min-height:100vh}.page.active{display:block}
+.page{display:none;min-height:100vh;overflow:hidden}.page.active{display:block;overflow:visible}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--br);border-radius:3px}
 
 /* ═══ NAVBAR ═══ */
@@ -1080,7 +1082,7 @@ footer{background:var(--tx);color:#fff;padding:4rem 2rem 2rem}
       </div>
       <div class="fg-b"><div class="fg-bt">Price Range (₹)</div>
         <div class="pr-row"><input class="pr-i" type="number" placeholder="Min" value="0"><input class="pr-i" type="number" placeholder="Max" value="2000"></div>
-        <button class="btn btn-pk btn-sm btn-full" style="margin-top:.75rem;border-radius:10px" onclick="renderShop()">Apply</button>
+        <button class="btn btn-pk btn-sm btn-full" style="margin-top:.75rem;border-radius:10px" onclick="applyFilters()">Apply</button>
       </div>
     </aside>
     <div>
@@ -1829,7 +1831,7 @@ function renderShop() {
   var g = document.getElementById('shopGrid');
   var cnt = document.getElementById('shopCnt');
   if (cnt) cnt.textContent = f.length;
-  if (g) g.innerHTML = f.map(makeCard).join('') || '<p style="grid-column:1/-1;text-align:center;padding:3rem;color:#9188a8;font-weight:700">No products found</p>';
+  if (g) g.innerHTML = f.length ? f.map(makeCard).join('') : '<p style="grid-column:1/-1;text-align:center;padding:3rem;color:#9188a8;font-weight:700">No products found — add products from Admin panel</p>';
 }
 
 // ── SIDEBAR FILTER ENGINE ──
@@ -1861,6 +1863,22 @@ function applyFilters() {
     var pSizes = (p.sizes||'').split(',').map(function(s){ return s.trim(); });
     return selSizes.some(function(sz){ return pSizes.indexOf(sz) >= 0; });
   });
+
+  // Price range filter
+  var prMin = document.querySelector('#page-shop .pr-i[placeholder="Min"]');
+  var prMax = document.querySelector('#page-shop .pr-i[placeholder="Max"]');
+  if (prMin && prMax) {
+    var minP = parseInt(prMin.value) || 0;
+    var maxP = parseInt(prMax.value) || 99999;
+    if (minP > 0 || maxP < 99999) {
+      prods = prods.filter(function(p){ return p.price >= minP && p.price <= maxP; });
+    }
+  }
+
+  // Sort
+  if (shopSortF === 'pa') prods.sort(function(a,b){ return a.price - b.price; });
+  if (shopSortF === 'pd') prods.sort(function(a,b){ return b.price - a.price; });
+  if (shopSortF === 'new') prods.reverse();
 
   var g = document.getElementById('shopGrid');
   var cnt = document.getElementById('shopCnt');
